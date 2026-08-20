@@ -1,0 +1,7 @@
+node_modules/
+out/
+dist/
+.data/
+*.vault
+.DS_Store
+.claude/

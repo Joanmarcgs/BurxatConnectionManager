@@ -1,0 +1,72 @@
+.wrap {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  min-height: 34px;
+  overflow-x: auto;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--text-dim);
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.tab:hover {
+  background: var(--bg-2);
+}
+
+.active {
+  background: var(--bg-0);
+  color: var(--text);
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.connecting {
+  background: var(--warning);
+}
+
+.connected {
+  background: var(--success);
+}
+
+.error {
+  background: var(--danger);
+}
+
+.closed {
+  background: var(--text-dim);
+}
+
+.label {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.close {
+  color: var(--text-dim);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.close:hover {
+  color: var(--danger);
+  background: rgba(229, 83, 75, 0.15);
+}

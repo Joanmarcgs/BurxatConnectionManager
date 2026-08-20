@@ -1,0 +1,25 @@
+appId: com.local.burxatconnectionmanager
+productName: BurxatConnectionManager
+directories:
+  buildResources: build
+  output: dist
+files:
+  - out/**/*
+  - package.json
+asarUnpack:
+  - '**/*.node'
+win:
+  target:
+    - target: portable
+      arch:
+        - x64
+  artifactName: '${productName}-${version}-portable.${ext}'
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  artifactName: '${productName}-${version}.${ext}'
+  category: Utility
+portable:
+  artifactName: '${productName}-${version}-portable.${ext}'
