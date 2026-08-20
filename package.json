@@ -3,7 +3,12 @@
   "version": "0.1.0",
   "description": "Burxat's Connection Manager - a portable MobaXterm-style SSH/RDP/SFTP client",
   "main": "./out/main/index.js",
-  "author": "you",
+  "author": "Joanmarcgs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Joanmarcgs/BurxatConnectionManager"
+  },
   "private": true,
   "type": "module",
   "scripts": {
