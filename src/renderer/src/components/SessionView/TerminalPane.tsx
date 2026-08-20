@@ -37,7 +37,7 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
     })
 
     // Right-click anywhere in the terminal pastes clipboard contents instead of showing the
-    // OS context menu (matches MobaXterm/PuTTY convention).
+    // OS context menu (a common terminal-emulator convention).
     function handleContextMenu(e: MouseEvent): void {
       e.preventDefault()
       window.api.clipboard.readText().then((text) => {

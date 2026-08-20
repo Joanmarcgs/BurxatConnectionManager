@@ -2,14 +2,10 @@
 
 **Free and open source, for anyone to use, study, modify, and share — see [License](#license).**
 
-A portable, [MobaXterm](https://mobaxterm.mobatek.net/)-style connection manager built with
-Electron. It keeps a sidebar tree of folders and connections, opens SSH sessions with a
-terminal + SFTP file browser side by side, and launches RDP connections through your system's
-native Remote Desktop client — all backed by a single encrypted vault file that travels with the
-app, not a fixed per-user profile path.
-
-> This project is not affiliated with MobaXterm or Mobatek; "MobaXterm-style" only describes the
-> general layout (sidebar + tabs + terminal/file-browser split) that inspired this app.
+A portable connection manager built with Electron. It keeps a sidebar tree of folders and
+connections, opens SSH sessions with a terminal + SFTP file browser side by side, and launches
+RDP connections through your system's native Remote Desktop client — all backed by a single
+encrypted vault file that travels with the app, not a fixed per-user profile path.
 
 ---
 
@@ -70,22 +66,23 @@ app, not a fixed per-user profile path.
 
 ## Screenshots
 
-_Coming soon — contributions welcome if you'd like to add some!_
+| | |
+| --- | --- |
+| ![Vault chooser screen](docs/screenshots/01-vault-chooser.png) *First launch — no vault found, choose to create or open one* | ![Create vault without a password](docs/screenshots/01b-create-no-password-warning.png) *Password is optional — skipping it shows a clear warning* |
+| ![Main window, empty vault](docs/screenshots/02-main-empty.png) *Main window with an empty vault* | ![Sidebar context menu](docs/screenshots/03-context-menu.png) *Right-click the sidebar to add a folder or connection* |
+| ![New connection dialog, SSH tab](docs/screenshots/04-new-connection-ssh.png) *New connection — SSH tab* | ![New connection dialog, RDP tab](docs/screenshots/05-new-connection-rdp.png) *New connection — RDP tab* |
+| ![Settings modal](docs/screenshots/06-settings.png) *Settings: theme, default editor, view controls* | |
 
 ## Download
 
-Prebuilt binaries aren't published automatically yet — for now, build from source (see
-[Getting started](#getting-started)) or grab an artifact from the
-[Actions](https://github.com/Joanmarcgs/BurxatConnectionManager/actions) /
-[Releases](https://github.com/Joanmarcgs/BurxatConnectionManager/releases) page if one has been
-published there.
-
-Two portable targets are supported:
+Grab the latest build from the
+[Releases](https://github.com/Joanmarcgs/BurxatConnectionManager/releases) page, or build from
+source yourself (see [Getting started](#getting-started)).
 
 | Platform | Artifact                                                              |
 | -------- | ---------------------------------------------------------------------- |
-| Windows  | `BurxatConnectionManager-<version>-portable.zip` — unzip and run the `.exe` at the root |
-| Linux    | `BurxatConnectionManager-<version>.AppImage` — `chmod +x` and run       |
+| Windows  | `BurxatConnectionManager-<version>-portable.zip` — unzip, then run the `.exe` at the root |
+| Linux    | `BurxatConnectionManager-<version>.tar.gz` — extract (`tar xzf ...`), then run `./burxat-connection-manager` from inside the extracted folder |
 
 No installer, no admin rights, nothing written outside the folder you put it in.
 
@@ -100,9 +97,30 @@ npm install
 npm run dev
 ```
 
-On first launch you'll be asked to set a **master password** — this creates a new encrypted
-vault (`connections.vault`) next to the app. Enter the same password on future launches to
-unlock it.
+The app always tries to reopen the last vault you used. **On first launch — or any time that
+last-used vault file can't be found** (a fresh install, a moved/renamed app folder, a deleted
+file, a different machine) — it falls back to its default vault location next to the executable
+and, finding nothing there either, shows two big buttons instead of a password form:
+
+> **Create a new vault** &nbsp;/&nbsp; **Open an existing vault**
+
+- **Create a new vault** creates a brand-new encrypted vault at the default location (or
+  anywhere else, via *Choose a different location…*). A master password is asked for but is
+  **optional** — leaving it blank shows a clear warning that anyone who can open that file will
+  be able to read every saved connection, password, and private key inside it, but the app will
+  let you proceed if you accept that trade-off.
+- **Open an existing vault** lets you browse to a `.vault` file you already have (e.g. copied
+  over from another machine) and unlock it.
+
+Once a vault exists at the current path, launching the app instead prompts:
+
+> **Enter the master password for "connections.vault"**
+
+If that vault was created with a password, enter it to unlock. If it was created without one,
+just leave the field blank and submit. There's no password-recovery option for password-protected
+vaults — if it's forgotten, that vault's contents are unrecoverable by design (see
+[How the vault works](#how-the-vault-works)). You can also open a different vault file, or create
+a new one at a location of your choosing, from the sidebar header at any time.
 
 ## Usage guide
 
@@ -124,8 +142,8 @@ unlock it.
   DevTools, zoom, fullscreen — these replace what would normally be a native menu bar, which this
   app doesn't use).
 - **Multiple vaults**: use the folder icon in the sidebar header to open a different vault file,
-  or the "+" icon to create a new one at a location you choose. Each vault has its own master
-  password.
+  or the "+" icon to create a new one at a location you choose. Each vault has its own (optional)
+  master password.
 
 ## How the vault works
 
@@ -143,6 +161,12 @@ The vault file's format (plain JSON, base64-encoded fields) is intentionally sim
 
 There is no password recovery mechanism — if you lose the master password, the vault's contents
 are unrecoverable by design.
+
+**The master password is optional.** The app will let you create a vault with an empty password
+(with a clear warning at creation time) — the vault file is still AES-256-GCM encrypted with a
+key derived the same way, just from an empty password, which offers essentially no protection
+against anyone who can read the file. Only do this if you understand and accept that trade-off,
+e.g. on a machine only you have access to.
 
 ## Portability
 
@@ -234,8 +258,9 @@ scripts/           Windows portable-zip build script
 ## Building distributable binaries
 
 ```bash
-npm run dist:win     # Windows portable zip: launcher exe + app/ folder, into dist/
-npm run dist:linux   # Linux AppImage, into dist/
+npm run dist:win             # Windows portable zip: launcher exe + app/ folder, into dist/
+npm run dist:linux           # Linux tar.gz, into dist/
+npm run dist:linux:appimage  # Linux AppImage — only works when run on an actual Linux host, see below
 ```
 
 `dist:win` builds an unpacked Electron app via `electron-builder --win dir`, compiles a small C#
@@ -245,6 +270,9 @@ starts the real app instantly without NSIS's self-extraction step, and zips the 
 There's also `npm run dist:win:nsis` for a traditional NSIS-style portable `.exe`, kept mainly
 for comparison — it's slower to launch (self-extracts on every run) and not the recommended
 distribution format.
+
+`dist:linux` produces a `tar.gz` rather than an AppImage by default — see
+[Known limitations](#known-limitations) for why.
 
 ## Security notes
 
@@ -264,9 +292,15 @@ distribution format.
 ## Known limitations
 
 - RDP is launched via the OS's native client, not rendered in-app.
-- No password-recovery mechanism for a forgotten master password, by design.
+- No password-recovery mechanism for a forgotten master password, by design (only relevant if
+  you set one — see [How the vault works](#how-the-vault-works)).
 - Windows and Linux are actively packaged; macOS works in development but doesn't currently have
   a packaged build target.
+- **The Linux release ships as `tar.gz`, not `AppImage`.** electron-builder's AppImage packaging
+  tool is itself distributed with real POSIX symlinks inside its archive, which Windows' 7-Zip
+  cannot extract — with or without admin rights — so it can't be built from a Windows host, which
+  is what this project is currently built and released from. Building an AppImage on an actual
+  Linux machine or in Linux-based CI should work fine; contributions to add that are welcome.
 
 ## Contributing
 

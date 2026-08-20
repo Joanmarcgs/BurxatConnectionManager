@@ -15,8 +15,13 @@ win:
         - x64
   artifactName: '${productName}-${version}-portable.${ext}'
 linux:
+  # AppImage would be nicer (single file, no extraction) but electron-builder's AppImage
+  # tooling is itself distributed with POSIX symlinks that Windows' 7-Zip can't extract, so it
+  # can't be built from a Windows host — only tar.gz is reliably buildable here. Building
+  # AppImage on an actual Linux machine or in CI should work fine; see README's "Known
+  # limitations" section.
   target:
-    - target: AppImage
+    - target: tar.gz
       arch:
         - x64
   artifactName: '${productName}-${version}.${ext}'

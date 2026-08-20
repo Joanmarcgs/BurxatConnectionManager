@@ -111,7 +111,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }): JSX
           <p className={styles.hint}>
             Burxat's Connection Manager{version ? ` v${version}` : ''}
             <br />
-            A portable, MobaXterm-style SSH/SFTP client.
+            A portable SSH/RDP/SFTP client.
           </p>
         </div>
 

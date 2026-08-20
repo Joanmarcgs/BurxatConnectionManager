@@ -1,7 +1,7 @@
 {
   "name": "burxat-connection-manager",
   "version": "0.1.0",
-  "description": "Burxat's Connection Manager - a portable MobaXterm-style SSH/RDP/SFTP client",
+  "description": "Burxat's Connection Manager - a portable SSH/RDP/SFTP client",
   "main": "./out/main/index.js",
   "author": "Joanmarcgs",
   "license": "MIT",
@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "dist:win": "powershell -ExecutionPolicy Bypass -File scripts/build-portable-win.ps1",
     "dist:win:nsis": "npm run build && electron-builder --win portable",
-    "dist:linux": "npm run build && electron-builder --linux AppImage"
+    "dist:linux": "npm run build && electron-builder --linux tar.gz",
+    "dist:linux:appimage": "npm run build && electron-builder --linux AppImage"
   },
   "dependencies": {
     "react": "^18.3.1",

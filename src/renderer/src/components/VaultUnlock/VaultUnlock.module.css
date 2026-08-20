@@ -7,13 +7,59 @@
 }
 
 .card {
-  width: 340px;
+  width: 400px;
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 28px;
   display: flex;
   flex-direction: column;
+}
+
+.chooserGrid {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.chooserBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 22px 12px;
+  text-align: center;
+}
+
+.chooserBtn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
+.chooserIcon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.chooserLabel {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.warning {
+  background: rgba(230, 126, 34, 0.12);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-bottom: 14px;
 }
 
 .title {
