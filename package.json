@@ -1,5 +1,5 @@
 {
-  "name": "burxats-connection-manager",
+  "name": "burxat-connection-manager",
   "version": "0.1.0",
   "description": "Burxat's Connection Manager - a portable MobaXterm-style SSH/RDP/SFTP client",
   "main": "./out/main/index.js",
