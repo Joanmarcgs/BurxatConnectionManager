@@ -61,49 +61,74 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
     })
 
     // Colorizes complete lines (IPs, MACs, URLs, UUIDs, a few status words) as they stream in.
-    // Data arrives in arbitrary chunks, not clean lines, so we buffer the trailing partial line
-    // across calls — but that partial is still written through immediately and uncolored so
-    // interactive prompts (e.g. "Password:") and live keystroke echo are never delayed waiting
-    // for a newline that may not come. Once a pending partial is later completed by a following
-    // chunk, that line is finished out plainly rather than retroactively recolored — rewriting
-    // terminal cells that are already on screen is fragile (wrapped lines, scrollback) for a
-    // cosmetic feature.
+    // SSH/pty data arrives in whatever chunking the transport happens to produce — over a real
+    // connection (and especially through Windows' ConPTY) that's often far smaller than one
+    // line at a time, sometimes just a few bytes. Writing each chunk through immediately as it
+    // arrived (as a first version of this did) meant a "line" was almost never actually
+    // complete-in-one-chunk in practice, so it barely ever got colorized. Instead, buffer until
+    // a newline shows up, bounded by a short max wait per partial segment so a prompt with no
+    // trailing newline (e.g. "Password:") still appears promptly rather than hanging — a ~30ms
+    // wait is well under normal perception for "instant".
+    //
+    // One sharp edge: if the buffered partial ends in a bare "\r" (its paired "\n" just hasn't
+    // arrived yet — extremely common, since "\r\n" line endings routinely get split across two
+    // separate reads), flushing it moves the cursor back to column 0 of that same row. Whatever
+    // text shows up next then overwrites what we just wrote instead of appending after it —
+    // silent on-screen corruption. So a trailing "\r" always waits for its "\n", up to a longer
+    // absolute cap, rather than flushing on the normal short timer.
+    const MAX_PARTIAL_WAIT_MS = 30
+    const ABSOLUTE_MAX_WAIT_MS = 300
     let pendingLine = ''
+    let pendingSince = 0
+    let flushTimer: ReturnType<typeof setTimeout> | null = null
 
     function writeLine(line: string): void {
       term.write(colorizeRef.current && !containsEscapeCode(line) ? colorizeLine(line) : line)
     }
 
+    function clearFlushTimer(): void {
+      if (flushTimer) {
+        clearTimeout(flushTimer)
+        flushTimer = null
+      }
+    }
+
+    function flushPending(): void {
+      clearFlushTimer()
+      if (!pendingLine) return
+      if (pendingLine.endsWith('\r') && Date.now() - pendingSince < ABSOLUTE_MAX_WAIT_MS) {
+        flushTimer = setTimeout(flushPending, MAX_PARTIAL_WAIT_MS)
+        return
+      }
+      term.write(pendingLine)
+      pendingLine = ''
+    }
+
     const unsubscribeData = window.api.session.onData((sessionId, data) => {
       if (sessionId !== tab.id) return
 
-      if (!data.includes('\n')) {
-        term.write(data)
-        pendingLine += data
-        return
-      }
+      if (!pendingLine) pendingSince = Date.now()
+      pendingLine += data
+      const segments = pendingLine.split('\n')
+      pendingLine = segments.pop() ?? ''
 
-      const segments = data.split('\n')
-      const first = segments.shift() as string
-      const wasContinuation = pendingLine.length > 0
-      const firstLine = pendingLine + first
-      pendingLine = ''
-
-      if (wasContinuation) {
-        term.write(first + '\n')
-      } else {
-        writeLine(firstLine)
-        term.write('\n')
-      }
-
-      const last = segments.pop() as string
       for (const line of segments) {
         writeLine(line)
         term.write('\n')
       }
 
-      term.write(last)
-      pendingLine = last
+      if (segments.length > 0) {
+        clearFlushTimer() // a line just completed; the timer was for that stale content
+        if (pendingLine) pendingSince = Date.now()
+      }
+
+      if (pendingLine) {
+        // Don't reset an already-running timer — a continuous trickle of small chunks (e.g. a
+        // long line arriving byte-by-byte) must still flush within the bound, not stall forever.
+        if (!flushTimer) flushTimer = setTimeout(flushPending, MAX_PARTIAL_WAIT_MS)
+      } else {
+        clearFlushTimer()
+      }
     })
 
     const resizeObserver = new ResizeObserver(() => {
@@ -121,6 +146,7 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
       selectionDisposable.dispose()
       containerRef.current?.removeEventListener('contextmenu', handleContextMenu)
       unsubscribeData()
+      clearFlushTimer()
       resizeObserver.disconnect()
       term.dispose()
     }

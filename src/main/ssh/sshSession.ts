@@ -72,7 +72,15 @@ export class SshSession {
 
       this.client
         .on('ready', () => {
-          this.client.shell({ term: 'xterm-256color' }, (err, stream) => {
+          // ssh2 defaults an unspecified pty to 80x24. Our terminal UI is almost always
+          // considerably wider than that, and the actual size doesn't reach the remote until the
+          // renderer mounts, fits, and round-trips a resize() call — a gap the shell can easily
+          // fill with column-aligned output (ipconfig, ls -l, etc.) rendered for the wrong width.
+          // Once the real resize() lands mid-stream, that output's cursor-positioning sequences
+          // were computed against the stale narrow width and land in the wrong places, corrupting
+          // what's on screen. Starting generously oversized avoids ever being too narrow — a
+          // pty that's initially too *wide* is harmless once shrunk to fit.
+          this.client.shell({ term: 'xterm-256color', cols: 220, rows: 50 }, (err, stream) => {
             if (err) {
               reject(err)
               return
