@@ -6,7 +6,7 @@ import type { AppSettings } from '../shared/types'
 const DEFAULT_SETTINGS: AppSettings = {
   defaultEditor: 'system',
   theme: 'dark',
-  colorizeOutput: true
+  terminalStyle: 'default'
 }
 
 function settingsFilePath(): string {

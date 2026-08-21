@@ -48,25 +48,26 @@ export default function SettingsModal({ onClose }: { onClose: () => void }): JSX
         </div>
 
         <div className={styles.section}>
-          <label className={styles.label}>Terminal</label>
+          <label className={styles.label}>Terminal style</label>
           <div className={styles.tabs}>
             <button
-              className={`${styles.tab} ${settings.colorizeOutput ? styles.tabActive : ''}`}
-              onClick={() => update({ colorizeOutput: true })}
+              className={`${styles.tab} ${settings.terminalStyle === 'default' ? styles.tabActive : ''}`}
+              onClick={() => update({ terminalStyle: 'default' })}
             >
-              Colorize output
+              Default (colored)
             </button>
             <button
-              className={`${styles.tab} ${!settings.colorizeOutput ? styles.tabActive : ''}`}
-              onClick={() => update({ colorizeOutput: false })}
+              className={`${styles.tab} ${settings.terminalStyle === 'raw' ? styles.tabActive : ''}`}
+              onClick={() => update({ terminalStyle: 'raw' })}
             >
-              Plain output
+              Raw
             </button>
           </div>
           <p className={styles.hint}>
-            Highlights IPs, MAC addresses, URLs, UUIDs, and a few status words (error/warning/
-            success) in plain command output. Never touches lines that already contain color
-            codes of their own (colored `ls`, prompts, vim, htop, etc.).
+            Default highlights IPs, MAC addresses, URLs, UUIDs, and a few status words (error/
+            warning/success) in plain command output — never touching lines that already contain
+            color codes of their own (colored `ls`, prompts, vim, htop, etc.). Raw disables that
+            and shows exactly what the remote shell sends.
           </p>
         </div>
 

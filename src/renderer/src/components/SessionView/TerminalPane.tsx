@@ -12,11 +12,11 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
   const colorizeRef = useRef(true)
-  const colorizeOutput = useSettingsStore((s) => s.settings.colorizeOutput)
+  const terminalStyle = useSettingsStore((s) => s.settings.terminalStyle)
 
   useEffect(() => {
-    colorizeRef.current = colorizeOutput
-  }, [colorizeOutput])
+    colorizeRef.current = terminalStyle !== 'raw'
+  }, [terminalStyle])
 
   useEffect(() => {
     if (!containerRef.current) return

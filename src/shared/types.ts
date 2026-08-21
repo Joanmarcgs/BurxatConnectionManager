@@ -76,10 +76,12 @@ export interface ServerStats {
   memTotalMB: number
 }
 
+export type TerminalStyle = 'default' | 'raw'
+
 export interface AppSettings {
   defaultEditor: 'system' | string
   theme: 'dark' | 'light'
-  colorizeOutput: boolean
+  terminalStyle: TerminalStyle
   lastVaultPath?: string
 }
 
