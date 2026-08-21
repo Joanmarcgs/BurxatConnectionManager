@@ -64,6 +64,8 @@ const api = {
     write: (sessionId: string, data: string): void => ipcRenderer.send(IPC.sessionWrite, sessionId, data),
     resize: (sessionId: string, cols: number, rows: number): void =>
       ipcRenderer.send(IPC.sessionResize, sessionId, cols, rows),
+    setActive: (sessionId: string, active: boolean): void =>
+      ipcRenderer.send(IPC.sessionSetActive, sessionId, active),
     onData: (cb: (sessionId: string, data: string) => void): (() => void) => {
       const listener = (_e: unknown, sessionId: string, data: string): void => cb(sessionId, data)
       ipcRenderer.on(IPC.sessionData, listener)

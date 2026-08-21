@@ -42,6 +42,7 @@ export const IPC = {
   sessionDisconnect: 'session:disconnect',
   sessionWrite: 'session:write',
   sessionResize: 'session:resize',
+  sessionSetActive: 'session:setActive',
   sessionData: 'session:data', // main -> renderer
   sessionStatus: 'session:status', // main -> renderer
   sessionStats: 'session:stats', // main -> renderer

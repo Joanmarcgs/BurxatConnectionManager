@@ -6,7 +6,7 @@ import { secureStore } from './secureStore'
 import { getSettings, saveSettings } from './settingsStore'
 import { SshSession } from './ssh/sshSession'
 import { SftpManager } from './ssh/sftpManager'
-import { startStatsPolling } from './ssh/statsPoller'
+import { startStatsPolling, type StatsPollHandle } from './ssh/statsPoller'
 import { startEdit, stopEdit, stopAllEditsForSession } from './ssh/editSessionManager'
 import { launchRdp } from './rdp'
 import { IPC } from '../shared/ipc'
@@ -15,7 +15,7 @@ import type { AppSettings, ConnectionConfig, FolderConfig, VaultUnlockResult } f
 interface ActiveSession {
   session: SshSession
   sftp: SftpManager
-  stopStats: () => void
+  stats: StatsPollHandle
 }
 
 const activeSessions = new Map<string, ActiveSession>()
@@ -75,8 +75,8 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
-  for (const { session, stopStats } of activeSessions.values()) {
-    stopStats()
+  for (const { session, stats } of activeSessions.values()) {
+    stats.stop()
     session.disconnect()
   }
   activeSessions.clear()
@@ -234,17 +234,17 @@ function registerIpcHandlers(): void {
     })
     session.onClose(() => {
       safeSend(sender, IPC.sessionStatus, { sessionId, status: 'closed' })
-      activeSessions.get(sessionId)?.stopStats()
+      activeSessions.get(sessionId)?.stats.stop()
       activeSessions.delete(sessionId)
       stopAllEditsForSession(sessionId)
     })
 
     try {
       await session.connect(config)
-      const stopStats = startStatsPolling(session, sessionId, (stats) => {
-        safeSend(sender, IPC.sessionStats, stats)
+      const stats = startStatsPolling(session, sessionId, (statsUpdate) => {
+        safeSend(sender, IPC.sessionStats, statsUpdate)
       })
-      activeSessions.set(sessionId, { session, sftp: new SftpManager(session.getClient()), stopStats })
+      activeSessions.set(sessionId, { session, sftp: new SftpManager(session.getClient()), stats })
       safeSend(sender, IPC.sessionStatus, { sessionId, status: 'connected' })
     } catch (err) {
       safeSend(sender, IPC.sessionStatus, {
@@ -258,7 +258,7 @@ function registerIpcHandlers(): void {
 
   ipcMain.handle(IPC.sessionDisconnect, (_e, sessionId: string) => {
     const active = activeSessions.get(sessionId)
-    active?.stopStats()
+    active?.stats.stop()
     active?.session.disconnect()
     activeSessions.delete(sessionId)
     stopAllEditsForSession(sessionId)
@@ -270,6 +270,13 @@ function registerIpcHandlers(): void {
 
   ipcMain.on(IPC.sessionResize, (_e, sessionId: string, cols: number, rows: number) => {
     activeSessions.get(sessionId)?.session.resize(cols, rows)
+  })
+
+  // Renderer tells us which session (if any) is both the active tab and in a focused window —
+  // stats polling only runs for that one, to avoid waking the network/CPU every few seconds for
+  // sessions nobody's actually looking at.
+  ipcMain.on(IPC.sessionSetActive, (_e, sessionId: string, active: boolean) => {
+    activeSessions.get(sessionId)?.stats.setActive(active)
   })
 
   // --- SFTP ---

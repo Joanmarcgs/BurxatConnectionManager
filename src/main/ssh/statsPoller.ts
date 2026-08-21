@@ -118,16 +118,29 @@ async function pollWindows(
   return { stats, method: 'powershell' }
 }
 
-/** Polls basic CPU/RAM stats from the remote host on a separate exec channel. Returns a stop function. */
+export interface StatsPollHandle {
+  /** Permanently stops polling (session disconnected/closed). */
+  stop: () => void
+  /**
+   * Pauses (false) or resumes (true) the actual remote exec calls without tearing down the
+   * poller's detected platform/CPU-sample state. A session sitting in a background tab, or the
+   * whole window losing focus, has no reason to keep waking the network/CPU every few seconds —
+   * that adds up to real battery drain on a laptop for something the user isn't even looking at.
+   */
+  setActive: (active: boolean) => void
+}
+
+/** Polls basic CPU/RAM stats from the remote host on a separate exec channel. */
 export function startStatsPolling(
   session: SshSession,
   sessionId: string,
   onStats: (stats: ServerStats) => void
-): () => void {
+): StatsPollHandle {
   let platform: 'unix' | 'windows' | null = null
   let prevSample: CpuSample | null = null
   let windowsMethod: WindowsStatsMethod | null = null
   let stopped = false
+  let active = true
 
   async function detectPlatform(): Promise<'unix' | 'windows'> {
     try {
@@ -139,19 +152,19 @@ export function startStatsPolling(
   }
 
   async function tick(): Promise<void> {
-    if (stopped) return
+    if (stopped || !active) return
     try {
       if (!platform) platform = await detectPlatform()
-      if (stopped) return
+      if (stopped || !active) return
 
       if (platform === 'unix') {
         const { stats, sample } = await pollUnix(session, prevSample)
         prevSample = sample
-        if (!stopped) onStats({ sessionId, ...stats })
+        if (!stopped && active) onStats({ sessionId, ...stats })
       } else {
         const { stats, method } = await pollWindows(session, windowsMethod)
         windowsMethod = method
-        if (!stopped) onStats({ sessionId, ...stats })
+        if (!stopped && active) onStats({ sessionId, ...stats })
       }
     } catch {
       // Ignore transient polling errors (e.g. session in the middle of closing).
@@ -161,8 +174,16 @@ export function startStatsPolling(
   tick()
   const interval = setInterval(tick, POLL_INTERVAL_MS)
 
-  return () => {
-    stopped = true
-    clearInterval(interval)
+  return {
+    stop: () => {
+      stopped = true
+      clearInterval(interval)
+    },
+    setActive: (next) => {
+      if (next === active) return
+      active = next
+      // Resuming: get a fresh reading right away instead of waiting up to POLL_INTERVAL_MS.
+      if (active) tick()
+    }
   }
 }
