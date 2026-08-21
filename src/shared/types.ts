@@ -79,6 +79,7 @@ export interface ServerStats {
 export interface AppSettings {
   defaultEditor: 'system' | string
   theme: 'dark' | 'light'
+  colorizeOutput: boolean
   lastVaultPath?: string
 }
 

@@ -5,7 +5,8 @@ import type { AppSettings } from '../shared/types'
 
 const DEFAULT_SETTINGS: AppSettings = {
   defaultEditor: 'system',
-  theme: 'dark'
+  theme: 'dark',
+  colorizeOutput: true
 }
 
 function settingsFilePath(): string {

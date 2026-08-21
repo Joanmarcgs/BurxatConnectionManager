@@ -3,12 +3,20 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import '@xterm/xterm/css/xterm.css'
 import type { TabState } from '../../state/sessionStore'
+import { useSettingsStore } from '../../state/settingsStore'
+import { colorizeLine, containsEscapeCode } from '../../utils/terminalColorize'
 import styles from './TerminalPane.module.css'
 
 export default function TerminalPane({ tab, active }: { tab: TabState; active: boolean }): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
   const fitAddonRef = useRef<FitAddon | null>(null)
+  const colorizeRef = useRef(true)
+  const colorizeOutput = useSettingsStore((s) => s.settings.colorizeOutput)
+
+  useEffect(() => {
+    colorizeRef.current = colorizeOutput
+  }, [colorizeOutput])
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -52,8 +60,50 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
       if (selection) window.api.clipboard.writeText(selection)
     })
 
+    // Colorizes complete lines (IPs, MACs, URLs, UUIDs, a few status words) as they stream in.
+    // Data arrives in arbitrary chunks, not clean lines, so we buffer the trailing partial line
+    // across calls — but that partial is still written through immediately and uncolored so
+    // interactive prompts (e.g. "Password:") and live keystroke echo are never delayed waiting
+    // for a newline that may not come. Once a pending partial is later completed by a following
+    // chunk, that line is finished out plainly rather than retroactively recolored — rewriting
+    // terminal cells that are already on screen is fragile (wrapped lines, scrollback) for a
+    // cosmetic feature.
+    let pendingLine = ''
+
+    function writeLine(line: string): void {
+      term.write(colorizeRef.current && !containsEscapeCode(line) ? colorizeLine(line) : line)
+    }
+
     const unsubscribeData = window.api.session.onData((sessionId, data) => {
-      if (sessionId === tab.id) term.write(data)
+      if (sessionId !== tab.id) return
+
+      if (!data.includes('\n')) {
+        term.write(data)
+        pendingLine += data
+        return
+      }
+
+      const segments = data.split('\n')
+      const first = segments.shift() as string
+      const wasContinuation = pendingLine.length > 0
+      const firstLine = pendingLine + first
+      pendingLine = ''
+
+      if (wasContinuation) {
+        term.write(first + '\n')
+      } else {
+        writeLine(firstLine)
+        term.write('\n')
+      }
+
+      const last = segments.pop() as string
+      for (const line of segments) {
+        writeLine(line)
+        term.write('\n')
+      }
+
+      term.write(last)
+      pendingLine = last
     })
 
     const resizeObserver = new ResizeObserver(() => {

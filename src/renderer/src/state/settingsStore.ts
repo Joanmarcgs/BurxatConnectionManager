@@ -13,7 +13,7 @@ function applyTheme(theme: AppSettings['theme']): void {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  settings: { defaultEditor: 'system', theme: 'dark' },
+  settings: { defaultEditor: 'system', theme: 'dark', colorizeOutput: true },
   loaded: false,
 
   load: async () => {

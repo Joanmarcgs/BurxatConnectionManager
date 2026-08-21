@@ -48,6 +48,29 @@ export default function SettingsModal({ onClose }: { onClose: () => void }): JSX
         </div>
 
         <div className={styles.section}>
+          <label className={styles.label}>Terminal</label>
+          <div className={styles.tabs}>
+            <button
+              className={`${styles.tab} ${settings.colorizeOutput ? styles.tabActive : ''}`}
+              onClick={() => update({ colorizeOutput: true })}
+            >
+              Colorize output
+            </button>
+            <button
+              className={`${styles.tab} ${!settings.colorizeOutput ? styles.tabActive : ''}`}
+              onClick={() => update({ colorizeOutput: false })}
+            >
+              Plain output
+            </button>
+          </div>
+          <p className={styles.hint}>
+            Highlights IPs, MAC addresses, URLs, UUIDs, and a few status words (error/warning/
+            success) in plain command output. Never touches lines that already contain color
+            codes of their own (colored `ls`, prompts, vim, htop, etc.).
+          </p>
+        </div>
+
+        <div className={styles.section}>
           <label className={styles.label}>Default editor (for SFTP "Edit")</label>
           <div className={styles.tabs}>
             <button
