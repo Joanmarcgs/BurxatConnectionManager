@@ -10,7 +10,13 @@ import { startStatsPolling, type StatsPollHandle } from './ssh/statsPoller'
 import { startEdit, stopEdit, stopAllEditsForSession } from './ssh/editSessionManager'
 import { launchRdp } from './rdp'
 import { IPC } from '../shared/ipc'
-import type { AppSettings, ConnectionConfig, FolderConfig, VaultUnlockResult } from '../shared/types'
+import type {
+  AppSettings,
+  ChangePasswordResult,
+  ConnectionConfig,
+  FolderConfig,
+  VaultUnlockResult
+} from '../shared/types'
 
 interface ActiveSession {
   session: SshSession
@@ -161,6 +167,14 @@ function registerIpcHandlers(): void {
     rememberLastVaultPath()
     return { ok: true, vaultExists: true, path: secureStore.getPath(), vaultName: secureStore.getData().name }
   })
+
+  ipcMain.handle(
+    IPC.vaultChangePassword,
+    (_e, currentPassword: string, newPassword: string): ChangePasswordResult => {
+      const ok = secureStore.changePassword(currentPassword, newPassword)
+      return ok ? { ok: true } : { ok: false, error: 'Current password is incorrect' }
+    }
+  )
 
   ipcMain.handle(IPC.vaultGetTree, (): FolderConfig => {
     return secureStore.getData().root

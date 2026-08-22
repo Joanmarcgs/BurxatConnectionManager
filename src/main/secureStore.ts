@@ -114,6 +114,25 @@ export class SecureStore {
     }
   }
 
+  /**
+   * Re-encrypts the currently-unlocked vault under a new master password (or no password),
+   * after confirming the caller actually knows the current one. Returns false rather than
+   * throwing on a wrong current password, matching unlock()'s style.
+   */
+  changePassword(currentPassword: string, newPassword: string): boolean {
+    if (!this.key || !this.data) throw new Error('Vault is locked')
+    const raw = readFileSync(this.currentPath, 'utf-8')
+    const parsed: VaultFileShape = JSON.parse(raw)
+    const salt = Buffer.from(parsed.salt, 'base64')
+    const checkKey = deriveKey(currentPassword, salt)
+    if (!safeEqual(checkKey, this.key)) return false
+
+    const newSalt = randomBytes(16)
+    this.key = deriveKey(newPassword, newSalt)
+    this.persist(newSalt)
+    return true
+  }
+
   private persist(salt: Buffer): void {
     if (!this.key || !this.data) throw new Error('Vault is locked')
     const iv = randomBytes(12)

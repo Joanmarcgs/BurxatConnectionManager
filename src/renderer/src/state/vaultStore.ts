@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { v4 as uuid } from 'uuid'
-import type { ConnectionConfig, FolderConfig, TreeNode } from '../../../shared/types'
+import type { ChangePasswordResult, ConnectionConfig, FolderConfig, TreeNode } from '../../../shared/types'
 
 interface VaultState {
   unlocked: boolean
@@ -20,6 +20,7 @@ interface VaultState {
   lockVault: () => Promise<void>
   pickExistingVault: () => Promise<void>
   saveVaultAs: () => Promise<void>
+  changeVaultPassword: (currentPassword: string, newPassword: string) => Promise<ChangePasswordResult>
   requestCreateNew: () => Promise<void>
   clearIntentCreateNew: () => void
 
@@ -121,6 +122,10 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     const result = await window.api.vault.saveAs()
     if (!result) return
     set({ path: result.path, vaultName: result.vaultName })
+  },
+
+  changeVaultPassword: async (currentPassword, newPassword) => {
+    return window.api.vault.changePassword(currentPassword, newPassword)
   },
 
   requestCreateNew: async () => {

@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '../shared/ipc'
 import type {
   AppSettings,
+  ChangePasswordResult,
   ConnectionConfig,
   EditSession,
   EditUploadEvent,
@@ -26,7 +27,9 @@ const api = {
     pickExisting: (): Promise<VaultUnlockResult | null> => ipcRenderer.invoke(IPC.vaultPickExisting),
     pickNewLocation: (suggestedName?: string): Promise<VaultUnlockResult | null> =>
       ipcRenderer.invoke(IPC.vaultPickNewLocation, suggestedName),
-    saveAs: (): Promise<VaultUnlockResult | null> => ipcRenderer.invoke(IPC.vaultSaveAs)
+    saveAs: (): Promise<VaultUnlockResult | null> => ipcRenderer.invoke(IPC.vaultSaveAs),
+    changePassword: (currentPassword: string, newPassword: string): Promise<ChangePasswordResult> =>
+      ipcRenderer.invoke(IPC.vaultChangePassword, currentPassword, newPassword)
   },
   dialogs: {
     pickKeyFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickKeyFile),

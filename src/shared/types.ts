@@ -45,6 +45,11 @@ export interface VaultUnlockResult {
   vaultName?: string
 }
 
+export interface ChangePasswordResult {
+  ok: boolean
+  error?: string
+}
+
 export interface SessionStatus {
   sessionId: string
   status: 'connecting' | 'connected' | 'error' | 'closed'

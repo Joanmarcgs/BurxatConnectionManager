@@ -9,6 +9,7 @@ export const IPC = {
   vaultPickExisting: 'vault:pickExisting',
   vaultPickNewLocation: 'vault:pickNewLocation',
   vaultSaveAs: 'vault:saveAs',
+  vaultChangePassword: 'vault:changePassword',
 
   // Dialogs
   pickKeyFile: 'dialog:pickKeyFile',

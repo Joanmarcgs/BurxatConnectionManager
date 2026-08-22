@@ -4,6 +4,7 @@ import { useSessionStore } from '../../state/sessionStore'
 import { vaultDisplayName } from '../../utils/vaultName'
 import ConnectionDialog from './ConnectionDialog'
 import PromptModal from '../common/PromptModal'
+import ChangePasswordModal from '../common/ChangePasswordModal'
 import TreeItem from './TreeItem'
 import type { ConnectionConfig, FolderConfig, TreeNode } from '../../../../shared/types'
 import styles from './Sidebar.module.css'
@@ -35,6 +36,7 @@ export default function Sidebar(): JSX.Element {
     { mode: 'new-folder'; parentId: string } | { mode: 'rename'; id: string; initial: string } | null
   >(null)
   const [vaultMenuOpen, setVaultMenuOpen] = useState(false)
+  const [showChangePassword, setShowChangePassword] = useState(false)
 
   useEffect(() => {
     function close(): void {
@@ -64,6 +66,11 @@ export default function Sidebar(): JSX.Element {
   async function handleSaveVaultAs(): Promise<void> {
     setVaultMenuOpen(false)
     await saveVaultAs()
+  }
+
+  function handleChangePassword(): void {
+    setVaultMenuOpen(false)
+    setShowChangePassword(true)
   }
 
   if (!root) return <div className={styles.wrap} />
@@ -121,6 +128,9 @@ export default function Sidebar(): JSX.Element {
               </div>
               <div className={styles.menuItem} onClick={handleSaveVaultAs}>
                 Save current vault as
+              </div>
+              <div className={styles.menuItem} onClick={handleChangePassword}>
+                Change master password
               </div>
             </div>
           )}
@@ -229,6 +239,8 @@ export default function Sidebar(): JSX.Element {
           }}
         />
       )}
+
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
     </div>
   )
 }
