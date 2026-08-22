@@ -7,34 +7,54 @@ export default function VaultUnlock(): JSX.Element {
   const vaultExists = useVaultStore((s) => s.vaultExists)
   const path = useVaultStore((s) => s.path)
   const error = useVaultStore((s) => s.error)
-  const createVault = useVaultStore((s) => s.createVault)
+  const intentCreateNew = useVaultStore((s) => s.intentCreateNew)
+  const clearIntentCreateNew = useVaultStore((s) => s.clearIntentCreateNew)
+  const createVaultWithDialog = useVaultStore((s) => s.createVaultWithDialog)
   const unlockVault = useVaultStore((s) => s.unlockVault)
   const pickExistingVault = useVaultStore((s) => s.pickExistingVault)
-  const pickNewVaultLocation = useVaultStore((s) => s.pickNewVaultLocation)
 
-  // No vault found at the current path (first launch, or the last-used vault file went missing):
-  // lead with a choice instead of dropping straight into a password form. `showCreateForm` is
-  // only consulted while `!vaultExists` — the moment a real vault is found (fresh create, or
-  // picking an existing file), the unlock form below takes over regardless of this flag.
+  // `forceCreate` captures a one-shot request (from the header menu's "Create a new vault",
+  // while a different vault was already open) to jump straight into the create form once this
+  // component (re)mounts, instead of falling back to the unlock screen for the vault that was
+  // just locked. `vaultExists` itself is read live on every render below so that it still
+  // correctly reacts to the async status check resolving after mount, or to picking an existing
+  // vault file.
+  const [forceCreate, setForceCreate] = useState(intentCreateNew)
   const [showCreateForm, setShowCreateForm] = useState(false)
+
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [localError, setLocalError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (vaultExists) setShowCreateForm(false)
-  }, [vaultExists])
+    if (intentCreateNew) clearIntentCreateNew()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  function resetCreateForm(): void {
+    setName('')
+    setDescription('')
+    setPassword('')
+    setConfirm('')
+    setLocalError(null)
+  }
 
   async function handleCreate(e: React.FormEvent): Promise<void> {
     e.preventDefault()
     setLocalError(null)
+    if (!name.trim()) {
+      setLocalError('Name is required')
+      return
+    }
     if (password !== confirm) {
       setLocalError('Passwords do not match')
       return
     }
     setBusy(true)
-    await createVault(password)
+    await createVaultWithDialog(name.trim(), description.trim(), password)
     setBusy(false)
   }
 
@@ -46,7 +66,13 @@ export default function VaultUnlock(): JSX.Element {
     setBusy(false)
   }
 
-  if (!vaultExists && !showCreateForm) {
+  async function handlePickExisting(): Promise<void> {
+    await pickExistingVault()
+  }
+
+  const showCreate = forceCreate || (!vaultExists && showCreateForm)
+
+  if (!forceCreate && !vaultExists && !showCreateForm) {
     return (
       <div className={styles.wrap}>
         <div className={styles.card}>
@@ -62,16 +88,14 @@ export default function VaultUnlock(): JSX.Element {
               type="button"
               className={styles.chooserBtn}
               onClick={() => {
-                setPassword('')
-                setConfirm('')
-                setLocalError(null)
+                resetCreateForm()
                 setShowCreateForm(true)
               }}
             >
               <span className={styles.chooserIcon}>＋</span>
               <span className={styles.chooserLabel}>Create a new vault</span>
             </button>
-            <button type="button" className={styles.chooserBtn} onClick={pickExistingVault}>
+            <button type="button" className={styles.chooserBtn} onClick={handlePickExisting}>
               <span className={styles.chooserIcon}>📂</span>
               <span className={styles.chooserLabel}>Open an existing vault</span>
             </button>
@@ -83,21 +107,36 @@ export default function VaultUnlock(): JSX.Element {
     )
   }
 
-  if (!vaultExists && showCreateForm) {
+  if (showCreate) {
     const noPassword = password.length === 0
 
     return (
       <div className={styles.wrap}>
         <form className={styles.card} onSubmit={handleCreate}>
           <h1 className={styles.title}>Create a new vault</h1>
-          <p className={styles.subtitle}>{`This will create "${vaultDisplayName(path)}"`}</p>
-          {path && <p className={styles.pathText}>{path}</p>}
+          <p className={styles.subtitle}>
+            Choose where to save it once you confirm below.
+          </p>
+
+          <label className={styles.label}>Name</label>
+          <input
+            className={styles.input}
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+
+          <label className={styles.label}>Description (optional)</label>
+          <input
+            className={styles.input}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
 
           <label className={styles.label}>Master password (optional)</label>
           <input
             className={styles.input}
             type="password"
-            autoFocus
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -120,16 +159,20 @@ export default function VaultUnlock(): JSX.Element {
 
           {(localError || error) && <div className={styles.error}>{localError ?? error}</div>}
 
-          <button className={styles.button} type="submit" disabled={busy}>
-            {noPassword ? 'Create vault without a password' : 'Create vault'}
+          <button className={styles.button} type="submit" disabled={busy || !name.trim()}>
+            {busy ? 'Creating…' : noPassword ? 'Create vault without a password' : 'Create vault'}
           </button>
 
           <div className={styles.switchRow}>
-            <button type="button" className={styles.linkBtn} onClick={() => setShowCreateForm(false)}>
+            <button
+              type="button"
+              className={styles.linkBtn}
+              onClick={() => {
+                setForceCreate(false)
+                setShowCreateForm(false)
+              }}
+            >
               ← Back
-            </button>
-            <button type="button" className={styles.linkBtn} onClick={pickNewVaultLocation}>
-              Choose a different location…
             </button>
           </div>
         </form>
@@ -160,10 +203,17 @@ export default function VaultUnlock(): JSX.Element {
         </button>
 
         <div className={styles.switchRow}>
-          <button type="button" className={styles.linkBtn} onClick={pickExistingVault}>
+          <button type="button" className={styles.linkBtn} onClick={handlePickExisting}>
             Open a different vault…
           </button>
-          <button type="button" className={styles.linkBtn} onClick={pickNewVaultLocation}>
+          <button
+            type="button"
+            className={styles.linkBtn}
+            onClick={() => {
+              resetCreateForm()
+              setForceCreate(true)
+            }}
+          >
             Create a new vault…
           </button>
         </div>

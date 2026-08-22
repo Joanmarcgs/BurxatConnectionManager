@@ -97,6 +97,20 @@
   z-index: 1000;
 }
 
+.vaultMenu {
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  margin-top: 6px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
 .menuItem {
   padding: 7px 10px;
   border-radius: 4px;

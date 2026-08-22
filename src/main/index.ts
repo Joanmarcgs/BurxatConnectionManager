@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, WebContents, clipboard } from 'electron'
-import { join, dirname } from 'path'
+import { join, dirname, basename } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import { is } from './is'
 import { secureStore } from './secureStore'
@@ -90,14 +90,23 @@ function registerIpcHandlers(): void {
   }
 
   ipcMain.handle(IPC.vaultStatus, (): VaultUnlockResult => {
-    return { ok: secureStore.isUnlocked(), vaultExists: secureStore.vaultExists(), path: secureStore.getPath() }
+    const unlocked = secureStore.isUnlocked()
+    return {
+      ok: unlocked,
+      vaultExists: secureStore.vaultExists(),
+      path: secureStore.getPath(),
+      vaultName: unlocked ? secureStore.getData().name : undefined
+    }
   })
 
-  ipcMain.handle(IPC.vaultCreate, (_e, masterPassword: string): VaultUnlockResult => {
-    secureStore.create(masterPassword)
-    rememberLastVaultPath()
-    return { ok: true, vaultExists: true, path: secureStore.getPath() }
-  })
+  ipcMain.handle(
+    IPC.vaultCreate,
+    (_e, masterPassword: string, name: string, description?: string): VaultUnlockResult => {
+      secureStore.create(masterPassword, name, description)
+      rememberLastVaultPath()
+      return { ok: true, vaultExists: true, path: secureStore.getPath(), vaultName: name }
+    }
+  )
 
   ipcMain.handle(IPC.vaultUnlock, (_e, masterPassword: string): VaultUnlockResult => {
     const ok = secureStore.unlock(masterPassword)
@@ -106,6 +115,7 @@ function registerIpcHandlers(): void {
       ok,
       vaultExists: true,
       path: secureStore.getPath(),
+      vaultName: ok ? secureStore.getData().name : undefined,
       error: ok ? undefined : 'Incorrect master password'
     }
   })
@@ -128,15 +138,28 @@ function registerIpcHandlers(): void {
     return { ok: false, vaultExists: secureStore.vaultExists(), path: secureStore.getPath() }
   })
 
-  ipcMain.handle(IPC.vaultPickNewLocation, async (): Promise<VaultUnlockResult | null> => {
+  ipcMain.handle(IPC.vaultPickNewLocation, async (_e, suggestedName?: string): Promise<VaultUnlockResult | null> => {
+    const fileBase = suggestedName?.replace(/[\\/:*?"<>|]+/g, '').trim() || 'connections'
     const result = await dialog.showSaveDialog({
-      defaultPath: join(dirname(secureStore.getPath()), 'connections.vault'),
+      defaultPath: join(dirname(secureStore.getPath()), `${fileBase}.vault`),
       filters: [{ name: 'Vault files', extensions: ['vault'] }]
     })
     if (result.canceled || !result.filePath) return null
     const filePath = result.filePath.endsWith('.vault') ? result.filePath : `${result.filePath}.vault`
     secureStore.setPath(filePath)
     return { ok: false, vaultExists: secureStore.vaultExists(), path: secureStore.getPath() }
+  })
+
+  ipcMain.handle(IPC.vaultSaveAs, async (): Promise<VaultUnlockResult | null> => {
+    const result = await dialog.showSaveDialog({
+      defaultPath: join(dirname(secureStore.getPath()), basename(secureStore.getPath())),
+      filters: [{ name: 'Vault files', extensions: ['vault'] }]
+    })
+    if (result.canceled || !result.filePath) return null
+    const filePath = result.filePath.endsWith('.vault') ? result.filePath : `${result.filePath}.vault`
+    secureStore.saveAs(filePath)
+    rememberLastVaultPath()
+    return { ok: true, vaultExists: true, path: secureStore.getPath(), vaultName: secureStore.getData().name }
   })
 
   ipcMain.handle(IPC.vaultGetTree, (): FolderConfig => {

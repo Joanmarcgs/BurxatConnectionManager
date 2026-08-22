@@ -6,15 +6,22 @@ interface VaultState {
   unlocked: boolean
   vaultExists: boolean
   path: string
+  vaultName?: string
   root: FolderConfig | null
   error: string | null
+  // Set by the "Create a new vault" action in the header menu (while a vault is already open)
+  // so VaultUnlock knows to jump straight into the create form once it remounts, instead of
+  // defaulting to the unlock screen for the vault that was just locked.
+  intentCreateNew: boolean
 
   refreshStatus: () => Promise<void>
-  createVault: (password: string) => Promise<boolean>
+  createVaultWithDialog: (name: string, description: string, password: string) => Promise<boolean>
   unlockVault: (password: string) => Promise<boolean>
   lockVault: () => Promise<void>
   pickExistingVault: () => Promise<void>
-  pickNewVaultLocation: () => Promise<void>
+  saveVaultAs: () => Promise<void>
+  requestCreateNew: () => Promise<void>
+  clearIntentCreateNew: () => void
 
   addFolder: (parentId: string, name: string) => Promise<void>
   renameNode: (id: string, name: string) => Promise<void>
@@ -49,23 +56,34 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   unlocked: false,
   vaultExists: false,
   path: '',
+  vaultName: undefined,
   root: null,
   error: null,
+  intentCreateNew: false,
 
   refreshStatus: async () => {
     const status = await window.api.vault.status()
-    set({ unlocked: status.ok, vaultExists: status.vaultExists, path: status.path })
+    set({ unlocked: status.ok, vaultExists: status.vaultExists, path: status.path, vaultName: status.vaultName })
     if (status.ok) {
       const root = await window.api.vault.getTree()
       set({ root })
     }
   },
 
-  createVault: async (password) => {
-    const result = await window.api.vault.create(password)
+  createVaultWithDialog: async (name, description, password) => {
+    const location = await window.api.vault.pickNewLocation(name)
+    if (!location) return false
+    const result = await window.api.vault.create(password, name, description)
     if (result.ok) {
       const root = await window.api.vault.getTree()
-      set({ unlocked: true, vaultExists: true, path: result.path, root, error: null })
+      set({
+        unlocked: true,
+        vaultExists: true,
+        path: result.path,
+        vaultName: result.vaultName,
+        root,
+        error: null
+      })
     }
     return result.ok
   },
@@ -74,7 +92,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     const result = await window.api.vault.unlock(password)
     if (result.ok) {
       const root = await window.api.vault.getTree()
-      set({ unlocked: true, path: result.path, root, error: null })
+      set({ unlocked: true, path: result.path, vaultName: result.vaultName, root, error: null })
     } else {
       set({ error: result.error ?? 'Failed to unlock' })
     }
@@ -83,20 +101,34 @@ export const useVaultStore = create<VaultState>((set, get) => ({
 
   lockVault: async () => {
     await window.api.vault.lock()
-    set({ unlocked: false, root: null })
+    set({ unlocked: false, root: null, vaultName: undefined })
   },
 
   pickExistingVault: async () => {
     const result = await window.api.vault.pickExisting()
     if (!result) return
-    set({ unlocked: false, root: null, vaultExists: result.vaultExists, path: result.path, error: null })
+    set({
+      unlocked: false,
+      root: null,
+      vaultExists: result.vaultExists,
+      path: result.path,
+      vaultName: undefined,
+      error: null
+    })
   },
 
-  pickNewVaultLocation: async () => {
-    const result = await window.api.vault.pickNewLocation()
+  saveVaultAs: async () => {
+    const result = await window.api.vault.saveAs()
     if (!result) return
-    set({ unlocked: false, root: null, vaultExists: result.vaultExists, path: result.path, error: null })
+    set({ path: result.path, vaultName: result.vaultName })
   },
+
+  requestCreateNew: async () => {
+    set({ intentCreateNew: true })
+    await get().lockVault()
+  },
+
+  clearIntentCreateNew: () => set({ intentCreateNew: false }),
 
   addFolder: async (parentId, name) => {
     const root = get().root

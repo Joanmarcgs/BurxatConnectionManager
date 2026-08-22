@@ -32,6 +32,9 @@ export type TreeNode = FolderConfig | ConnectionConfig
 
 export interface VaultData {
   root: FolderConfig
+  // Absent on vaults saved before this field existed.
+  name?: string
+  description?: string
 }
 
 export interface VaultUnlockResult {
@@ -39,6 +42,7 @@ export interface VaultUnlockResult {
   error?: string
   vaultExists: boolean
   path: string
+  vaultName?: string
 }
 
 export interface SessionStatus {

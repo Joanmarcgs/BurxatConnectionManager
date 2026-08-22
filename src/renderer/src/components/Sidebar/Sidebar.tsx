@@ -22,8 +22,10 @@ export default function Sidebar(): JSX.Element {
   const moveNode = useVaultStore((s) => s.moveNode)
   const lockVault = useVaultStore((s) => s.lockVault)
   const path = useVaultStore((s) => s.path)
+  const vaultName = useVaultStore((s) => s.vaultName)
   const pickExistingVault = useVaultStore((s) => s.pickExistingVault)
-  const pickNewVaultLocation = useVaultStore((s) => s.pickNewVaultLocation)
+  const requestCreateNew = useVaultStore((s) => s.requestCreateNew)
+  const saveVaultAs = useVaultStore((s) => s.saveVaultAs)
   const openConnection = useSessionStore((s) => s.openConnection)
 
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
@@ -32,14 +34,37 @@ export default function Sidebar(): JSX.Element {
   const [promptState, setPromptState] = useState<
     { mode: 'new-folder'; parentId: string } | { mode: 'rename'; id: string; initial: string } | null
   >(null)
+  const [vaultMenuOpen, setVaultMenuOpen] = useState(false)
 
   useEffect(() => {
     function close(): void {
       setMenu(null)
+      setVaultMenuOpen(false)
     }
     window.addEventListener('click', close)
     return () => window.removeEventListener('click', close)
   }, [])
+
+  async function handleOpenDifferentVault(): Promise<void> {
+    setVaultMenuOpen(false)
+    await lockVault()
+    await pickExistingVault()
+  }
+
+  async function handleCreateNewVault(): Promise<void> {
+    setVaultMenuOpen(false)
+    await requestCreateNew()
+  }
+
+  async function handleLockVault(): Promise<void> {
+    setVaultMenuOpen(false)
+    await lockVault()
+  }
+
+  async function handleSaveVaultAs(): Promise<void> {
+    setVaultMenuOpen(false)
+    await saveVaultAs()
+  }
 
   if (!root) return <div className={styles.wrap} />
 
@@ -70,18 +95,35 @@ export default function Sidebar(): JSX.Element {
     <div className={styles.wrap} onContextMenu={(e) => handleContextMenu(e, root)}>
       <div className={styles.header}>
         <span className={styles.vaultName} title={path}>
-          {vaultDisplayName(path)}
+          {vaultName || vaultDisplayName(path)}
         </span>
         <div className={styles.headerActions}>
-          <button className={styles.lockBtn} title="Open a different vault…" onClick={() => pickExistingVault()}>
-            📂
+          <button
+            className={styles.lockBtn}
+            title="Vault menu"
+            onClick={(e) => {
+              e.stopPropagation()
+              setVaultMenuOpen((v) => !v)
+            }}
+          >
+            ☰
           </button>
-          <button className={styles.lockBtn} title="Create a new vault…" onClick={() => pickNewVaultLocation()}>
-            ＋
-          </button>
-          <button className={styles.lockBtn} title="Lock vault" onClick={() => lockVault()}>
-            🔒
-          </button>
+          {vaultMenuOpen && (
+            <div className={styles.vaultMenu} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.menuItem} onClick={handleOpenDifferentVault}>
+                Open a different vault
+              </div>
+              <div className={styles.menuItem} onClick={handleCreateNewVault}>
+                Create a new vault
+              </div>
+              <div className={styles.menuItem} onClick={handleLockVault}>
+                Lock vault
+              </div>
+              <div className={styles.menuItem} onClick={handleSaveVaultAs}>
+                Save current vault as
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

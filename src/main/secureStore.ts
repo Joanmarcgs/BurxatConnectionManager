@@ -15,8 +15,12 @@ interface VaultFileShape {
   ciphertext: string
 }
 
-function emptyVault(): VaultData {
-  return { root: { id: 'root', type: 'folder', name: 'Connections', children: [] } as FolderConfig }
+function emptyVault(name: string, description?: string): VaultData {
+  return {
+    root: { id: 'root', type: 'folder', name: 'Connections', children: [] } as FolderConfig,
+    name,
+    description
+  }
 }
 
 function deriveKey(password: string, salt: Buffer): Buffer {
@@ -52,10 +56,10 @@ export class SecureStore {
   }
 
   /** Creates a brand-new vault protected by the given master password. */
-  create(masterPassword: string): void {
+  create(masterPassword: string, name: string, description?: string): void {
     const salt = randomBytes(16)
     this.key = deriveKey(masterPassword, salt)
-    this.data = emptyVault()
+    this.data = emptyVault(name, description)
     this.persist(salt)
   }
 
@@ -92,6 +96,22 @@ export class SecureStore {
     const raw = readFileSync(this.currentPath, 'utf-8')
     const parsed: VaultFileShape = JSON.parse(raw)
     this.persist(Buffer.from(parsed.salt, 'base64'))
+  }
+
+  /** Writes the currently-unlocked vault to a new file (same key/password) and switches to it. */
+  saveAs(newPath: string): void {
+    if (!this.key || !this.data) throw new Error('Vault is locked')
+    const raw = readFileSync(this.currentPath, 'utf-8')
+    const parsed: VaultFileShape = JSON.parse(raw)
+    const salt = Buffer.from(parsed.salt, 'base64')
+    const previousPath = this.currentPath
+    this.currentPath = newPath
+    try {
+      this.persist(salt)
+    } catch (err) {
+      this.currentPath = previousPath
+      throw err
+    }
   }
 
   private persist(salt: Buffer): void {

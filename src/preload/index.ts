@@ -16,15 +16,17 @@ import type {
 const api = {
   vault: {
     status: (): Promise<VaultUnlockResult> => ipcRenderer.invoke(IPC.vaultStatus),
-    create: (masterPassword: string): Promise<VaultUnlockResult> =>
-      ipcRenderer.invoke(IPC.vaultCreate, masterPassword),
+    create: (masterPassword: string, name: string, description?: string): Promise<VaultUnlockResult> =>
+      ipcRenderer.invoke(IPC.vaultCreate, masterPassword, name, description),
     unlock: (masterPassword: string): Promise<VaultUnlockResult> =>
       ipcRenderer.invoke(IPC.vaultUnlock, masterPassword),
     lock: (): Promise<void> => ipcRenderer.invoke(IPC.vaultLock),
     getTree: (): Promise<FolderConfig> => ipcRenderer.invoke(IPC.vaultGetTree),
     saveTree: (root: FolderConfig): Promise<void> => ipcRenderer.invoke(IPC.vaultSaveTree, root),
     pickExisting: (): Promise<VaultUnlockResult | null> => ipcRenderer.invoke(IPC.vaultPickExisting),
-    pickNewLocation: (): Promise<VaultUnlockResult | null> => ipcRenderer.invoke(IPC.vaultPickNewLocation)
+    pickNewLocation: (suggestedName?: string): Promise<VaultUnlockResult | null> =>
+      ipcRenderer.invoke(IPC.vaultPickNewLocation, suggestedName),
+    saveAs: (): Promise<VaultUnlockResult | null> => ipcRenderer.invoke(IPC.vaultSaveAs)
   },
   dialogs: {
     pickKeyFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickKeyFile),
