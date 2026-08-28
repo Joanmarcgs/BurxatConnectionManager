@@ -28,6 +28,7 @@ encrypted vault file that travels with the app, not a fixed per-user profile pat
 - [Known limitations](#known-limitations)
 - [Contributing](#contributing)
 - [License](#license)
+- [Changelog](CHANGELOG.md)
 
 ---
 
@@ -55,10 +56,12 @@ encrypted vault file that travels with the app, not a fixed per-user profile pat
   polled over a separate exec channel — works against both Linux/Unix (`/proc`) and Windows
   (`wmic`/PowerShell CIM) targets.
 - **Terminal quality-of-life**: right-click anywhere to paste the clipboard, select text to copy
-  it automatically — no separate copy/paste menu needed.
+  it automatically — no separate copy/paste menu needed. Optional output colorization highlights
+  IPs, MAC addresses, URLs, UUIDs, and error/warning/success words, without ever touching lines
+  that already contain their own color codes.
 - **Multiple vaults** — keep entirely separate, separately-password-protected sets of
   connections (e.g. "work" vs "personal"), switch between them, or point the app at a vault file
-  anywhere on disk.
+  anywhere on disk. Change a vault's master password (or remove it) at any time.
 - **Fully portable** — copy the app folder (or the release zip) anywhere, including a USB drive;
   the encrypted vault is created next to the executable, not in a fixed OS profile path.
 - **No telemetry, no network calls except to the hosts you connect to.** See
@@ -99,28 +102,28 @@ npm run dev
 
 The app always tries to reopen the last vault you used. **On first launch — or any time that
 last-used vault file can't be found** (a fresh install, a moved/renamed app folder, a deleted
-file, a different machine) — it falls back to its default vault location next to the executable
-and, finding nothing there either, shows two big buttons instead of a password form:
+file, a different machine) — it shows two big buttons instead of a password form:
 
 > **Create a new vault** &nbsp;/&nbsp; **Open an existing vault**
 
-- **Create a new vault** creates a brand-new encrypted vault at the default location (or
-  anywhere else, via *Choose a different location…*). A master password is asked for but is
-  **optional** — leaving it blank shows a clear warning that anyone who can open that file will
-  be able to read every saved connection, password, and private key inside it, but the app will
-  let you proceed if you accept that trade-off.
+- **Create a new vault** goes straight to a form: **Name** (required), **Description**
+  (optional), and a master password (also **optional** — leaving it blank shows a clear warning
+  that anyone who can open that file will be able to read every saved connection, password, and
+  private key inside it, but the app will let you proceed if you accept that trade-off).
+  Confirming opens a save dialog, pre-filled with your chosen name, so you pick exactly where the
+  vault file goes.
 - **Open an existing vault** lets you browse to a `.vault` file you already have (e.g. copied
   over from another machine) and unlock it.
 
 Once a vault exists at the current path, launching the app instead prompts:
 
-> **Enter the master password for "connections.vault"**
+> **Enter the master password for "\<vault name\>"**
 
 If that vault was created with a password, enter it to unlock. If it was created without one,
 just leave the field blank and submit. There's no password-recovery option for password-protected
 vaults — if it's forgotten, that vault's contents are unrecoverable by design (see
-[How the vault works](#how-the-vault-works)). You can also open a different vault file, or create
-a new one at a location of your choosing, from the sidebar header at any time.
+[How the vault works](#how-the-vault-works)). You can also open a different vault file or create
+a new one from the vault menu (☰, next to the vault name) at any time.
 
 ## Usage guide
 
@@ -141,9 +144,13 @@ a new one at a location of your choosing, from the sidebar header at any time.
 - **Settings** (gear icon): default editor for "Edit", light/dark theme, view controls (reload,
   DevTools, zoom, fullscreen — these replace what would normally be a native menu bar, which this
   app doesn't use).
-- **Multiple vaults**: use the folder icon in the sidebar header to open a different vault file,
-  or the "+" icon to create a new one at a location you choose. Each vault has its own (optional)
-  master password.
+- **Vault menu** (☰, next to the vault name): *Open a different vault*, *Create a new vault*,
+  *Lock vault*, *Save current vault as* (writes a copy to a new file under the same password and
+  switches to it), and *Change master password* (requires the current one; the new one is
+  optional, same as at creation).
+- **Multiple vaults**: keep entirely separate, separately-password-protected sets of connections
+  by creating or opening different vault files. Each vault has its own (optional) master
+  password.
 
 ## How the vault works
 
