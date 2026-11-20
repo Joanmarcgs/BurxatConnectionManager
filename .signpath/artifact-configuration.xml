@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath artifact configuration for the Windows portable build.
+
+  Kept in the repo for reference: paste/upload it as the artifact configuration of the project
+  in the SignPath web UI (see docs/code-signing.md). The signed artifact is the folder the build
+  script stages before zipping, so paths below are relative to that folder.
+
+  Only our own two executables are signed. The Electron runtime files next to them are upstream
+  binaries and are included unmodified (SignPath's terms allow that).
+
+  ${version} is passed in by the workflow as a parameter (package.json version). Both executables
+  report product version "<version>.0" (the launcher is given matching metadata by
+  scripts/build-portable-win.ps1; electron-builder sets it on the main exe).
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file path="BurxatConnectionManager.exe"
+             product-name="BurxatConnectionManager"
+             product-version="${version}.0">
+      <authenticode-sign/>
+    </pe-file>
+    <pe-file path="app/BurxatConnectionManager.exe"
+             product-name="BurxatConnectionManager"
+             product-version="${version}.0">
+      <authenticode-sign/>
+    </pe-file>
+  </zip-file>
+</artifact-configuration>

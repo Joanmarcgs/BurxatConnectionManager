@@ -25,6 +25,7 @@ encrypted vault file that travels with the app, not a fixed per-user profile pat
 - [Project layout](#project-layout)
 - [Building distributable binaries](#building-distributable-binaries)
 - [Security notes](#security-notes)
+- [Code signing policy](#code-signing-policy)
 - [Known limitations](#known-limitations)
 - [Contributing](#contributing)
 - [License](#license)
@@ -300,6 +301,29 @@ distribution format.
   [GitHub issue](https://github.com/Joanmarcgs/BurxatConnectionManager/issues) — this is a
   community project without a dedicated security contact, so treat sensitive reports accordingly
   until a private disclosure channel exists.
+
+## Code signing policy
+
+**Status: applying.** This project is applying for free code signing from the
+[SignPath Foundation](https://signpath.org/). Until that's approved, Windows releases are
+**unsigned** and Windows SmartScreen shows an "unknown publisher" warning (*More info → Run
+anyway*). Once approved, this section applies to Windows release binaries:
+
+> Free code signing provided by [SignPath.io](https://signpath.io/), certificate by
+> [SignPath Foundation](https://signpath.org/).
+
+- **Roles.** Author, reviewer and approver: [Joanmarcgs](https://github.com/Joanmarcgs) (sole
+  maintainer). Every signing request is approved manually.
+- **What gets signed.** Only binaries built from this repository's source by the GitHub Actions
+  workflow in `.github/workflows/release.yml` (the launcher and `app/BurxatConnectionManager.exe`).
+  The Electron runtime files are included unmodified.
+- **Privacy.** The app has no telemetry and makes no network connections of its own — only the
+  SSH/SFTP connections you start to hosts you configure. See [Security notes](#security-notes).
+- **System changes.** None. There's no installer; the app writes only next to its own folder
+  (the vault and settings) and to the OS temp directory (files being edited, a temporary `.rdp`
+  file). To uninstall, delete the folder.
+
+Maintainer setup notes: [docs/code-signing.md](docs/code-signing.md).
 
 ## Known limitations
 

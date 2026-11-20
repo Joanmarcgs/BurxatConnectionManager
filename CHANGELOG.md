@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **Release workflow on GitHub Actions** (`.github/workflows/release.yml`): builds the Windows
+  zip and Linux tarball on GitHub-hosted runners when a `v*` tag is pushed, and publishes the
+  release using that version's CHANGELOG section as the notes. Prepared for Windows code signing
+  through SignPath Foundation (see `docs/code-signing.md`); without the SignPath secret it
+  publishes an unsigned zip as before.
+- README **Code signing policy** section.
+
+### Changed
+
+- `scripts/build-portable-win.ps1` gained `-StageOnly` and `-ZipStage <folder>` so the
+  executables can be signed between building and zipping; with no arguments it behaves as before.
+  The launcher now carries product name/version metadata matching the main executable.
+
 ## [0.2.1] - 2026-11-20
 
 ### Added
