@@ -2,6 +2,35 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **Reusable keys.** Private keys are now stored once in the vault's key library and connections
+  point at them, instead of every connection embedding its own copy (which made the vault file
+  grow by one key per server). The connection dialog has a new **Saved key** option listing the
+  vault's keys — including keys that older vaults embedded directly in other connections, which
+  are moved into the library the first time you pick one. **Import new key** adds to the library
+  too. Existing connections keep working unchanged until you edit them. The library is not
+  readable by older versions: a connection that references a library key won't connect in 0.2.0
+  or earlier.
+- **Open a vault by double-clicking it.** A `.vault` path passed on the command line (Explorer
+  double-click or "Open with" → the launcher exe) now opens the unlock screen for *that* file
+  instead of the last-used vault.
+
+### Fixed
+
+- **Garbled terminal / stray new lines after switching tabs.** A hidden tab's terminal was being
+  fitted to a bogus ~12x6 size and that size was sent to the remote shell, which redrew itself
+  for 12 columns. Only visible terminals are fitted now. Related: the terminal's real size was
+  never sent to the server after connecting (only on later resizes); it is now sent once the
+  session connects.
+
+### Changed
+
+- "Open a different vault" / "Create a new vault" on the unlock screen are now proper buttons
+  instead of small underlined links.
+
 ## [0.2.0] - 2026-08-27
 
 ### Added

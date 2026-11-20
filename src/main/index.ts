@@ -42,6 +42,14 @@ function findVaultPathInArgs(argv: string[]): string | null {
   return null
 }
 
+/** Swaps a connection's key-library reference for the actual key content before connecting. */
+function resolveKeyReference(config: ConnectionConfig): ConnectionConfig {
+  if (!config.keyId) return config
+  const key = secureStore.getKeys().find((k) => k.id === config.keyId)
+  if (!key) throw new Error('The saved key this connection uses is no longer in the vault')
+  return { ...config, keyContent: key.content }
+}
+
 function createWindow(): void {
   // Packaged builds get their icon baked into the exe by electron-builder; this only matters
   // for dev mode, where Electron would otherwise show its own default icon.
@@ -189,6 +197,9 @@ function registerIpcHandlers(): void {
     }
   )
 
+  ipcMain.handle(IPC.vaultGetKeys, () => secureStore.getKeys())
+  ipcMain.handle(IPC.vaultAddKey, (_e, name: string, content: string) => secureStore.addKey(name, content))
+
   ipcMain.handle(IPC.vaultGetTree, (): FolderConfig => {
     return secureStore.getData().root
   })
@@ -278,6 +289,7 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IPC.sessionConnect, async (event, sessionId: string, config: ConnectionConfig) => {
     const session = new SshSession(sessionId)
     const sender = event.sender
+    config = resolveKeyReference(config)
 
     session.onData((chunk) => {
       safeSend(sender, IPC.sessionData, sessionId, chunk.toString('utf-8'))

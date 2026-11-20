@@ -202,19 +202,19 @@ export default function VaultUnlock(): JSX.Element {
           Unlock
         </button>
 
-        <div className={styles.switchRow}>
-          <button type="button" className={styles.linkBtn} onClick={handlePickExisting}>
-            Open a different vault…
+        <div className={styles.buttonRow}>
+          <button type="button" className={styles.secondaryBtn} onClick={handlePickExisting}>
+            📂 Open a different vault
           </button>
           <button
             type="button"
-            className={styles.linkBtn}
+            className={styles.secondaryBtn}
             onClick={() => {
               resetCreateForm()
               setForceCreate(true)
             }}
           >
-            Create a new vault…
+            ＋ Create a new vault
           </button>
         </div>
       </form>

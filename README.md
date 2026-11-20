@@ -43,7 +43,8 @@ encrypted vault file that travels with the app, not a fixed per-user profile pat
   Linux/macOS via `SSH_AUTH_SOCK`).
 - **Private keys can be imported into the vault** so the whole setup — connections, credentials,
   and keys — travels with the app, not just references to files that may not exist on another
-  machine.
+  machine. Each key is stored once and can be **reused by any number of connections** (pick
+  "Saved key" in the connection dialog), so using one key for many servers doesn't bloat the vault.
 - **RDP connections** open through your OS's native Remote Desktop client (`mstsc` on Windows,
   `xfreerdp` on Linux) with host/username prefilled.
 - **SFTP file operations**: browse, upload, download, rename, delete, create folders, copy
@@ -144,6 +145,10 @@ a new one from the vault menu (☰, next to the vault name) at any time.
 - **Settings** (gear icon): default editor for "Edit", light/dark theme, view controls (reload,
   DevTools, zoom, fullscreen — these replace what would normally be a native menu bar, which this
   app doesn't use).
+- **Open a vault by double-clicking it**: set the launcher exe as the default program for
+  `.vault` files (Windows: right-click a `.vault` file → *Open with* → *Choose another app* →
+  the `BurxatConnectionManager.exe` at the root of the zip → *Always*). The file you double-click
+  is the one the unlock screen asks about, regardless of which vault was open last.
 - **Vault menu** (☰, next to the vault name): *Open a different vault*, *Create a new vault*,
   *Lock vault*, *Save current vault as* (writes a copy to a new file under the same password and
   switches to it), and *Change master password* (requires the current one; the new one is

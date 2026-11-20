@@ -138,6 +138,27 @@
   margin-top: 16px;
 }
 
+.buttonRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.secondaryBtn {
+  flex: 1;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 9px 8px;
+  font-size: 12px;
+}
+
+.secondaryBtn:hover {
+  background: var(--bg-3);
+  border-color: var(--accent);
+}
+
 .linkBtn {
   background: none;
   border: none;

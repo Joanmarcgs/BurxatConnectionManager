@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs'
-import { randomBytes, createCipheriv, createDecipheriv, scryptSync, timingSafeEqual } from 'crypto'
+import { randomBytes, randomUUID, createCipheriv, createDecipheriv, scryptSync, timingSafeEqual } from 'crypto'
 import { vaultFilePath } from './vaultPath'
-import type { FolderConfig, VaultData } from '../shared/types'
+
+import type { FolderConfig, VaultData, VaultKey } from '../shared/types'
 
 const SCRYPT_KEYLEN = 32
 // N * r * 128 bytes of memory are needed; default maxmem (32MB) only just
@@ -96,6 +97,23 @@ export class SecureStore {
     const raw = readFileSync(this.currentPath, 'utf-8')
     const parsed: VaultFileShape = JSON.parse(raw)
     this.persist(Buffer.from(parsed.salt, 'base64'))
+  }
+
+  getKeys(): VaultKey[] {
+    return this.getData().keys ?? []
+  }
+
+  /** Adds a key to the library (or returns the existing entry if the same key is already there). */
+  addKey(name: string, content: string): VaultKey {
+    const data = this.getData()
+    const keys = (data.keys ??= [])
+    const trimmed = content.trim()
+    const existing = keys.find((k) => k.content.trim() === trimmed)
+    if (existing) return existing
+    const key: VaultKey = { id: randomUUID(), name, content }
+    keys.push(key)
+    this.save()
+    return key
   }
 
   /** Writes the currently-unlocked vault to a new file (same key/password) and switches to it. */

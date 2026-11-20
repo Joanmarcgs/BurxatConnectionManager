@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useVaultStore } from '../../state/vaultStore'
-import type { AuthType, ConnectionConfig, ConnectionProtocol } from '../../../../shared/types'
+import type { AuthType, ConnectionConfig, ConnectionProtocol, TreeNode, VaultKey } from '../../../../shared/types'
 import styles from './ConnectionDialog.module.css'
 
 interface Props {
@@ -10,12 +10,27 @@ interface Props {
   onClose: () => void
 }
 
-type KeyMode = 'import' | 'reference'
+type KeyMode = 'saved' | 'import' | 'reference'
+
+interface KeyOption {
+  value: string // `lib:<keyId>` for a key already in the vault's library, `inline:<connId>` for one still embedded in another connection
+  label: string // shown in the dropdown
+  name: string // what gets stored if this key is added to the library
+  content: string
+}
+
+function collectInlineKeys(node: TreeNode, out: ConnectionConfig[]): void {
+  if (node.type === 'folder') node.children.forEach((c) => collectInlineKeys(c, out))
+  else if (node.keyContent) out.push(node)
+}
 
 const DEFAULT_PORT: Record<ConnectionProtocol, number> = { ssh: 22, rdp: 3389 }
 
 export default function ConnectionDialog({ parentId, existing, onClose }: Props): JSX.Element {
   const upsertConnection = useVaultStore((s) => s.upsertConnection)
+  const root = useVaultStore((s) => s.root)
+  const [libraryKeys, setLibraryKeys] = useState<VaultKey[]>([])
+  const [savedChoice, setSavedChoice] = useState(existing?.keyId ? `lib:${existing.keyId}` : '')
 
   const [protocol, setProtocol] = useState<ConnectionProtocol>(existing?.protocol ?? 'ssh')
   const [name, setName] = useState(existing?.name ?? '')
@@ -24,13 +39,46 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
   const [username, setUsername] = useState(existing?.username ?? '')
   const [authType, setAuthType] = useState<AuthType>(existing?.authType ?? 'password')
   const [password, setPassword] = useState(existing?.password ?? '')
-  const [keyMode, setKeyMode] = useState<KeyMode>(existing?.keyPath && !existing?.keyContent ? 'reference' : 'import')
+  const [keyMode, setKeyMode] = useState<KeyMode>(
+    existing?.keyId ? 'saved' : existing?.keyPath && !existing?.keyContent ? 'reference' : 'import'
+  )
   const [keyPath, setKeyPath] = useState(existing?.keyPath ?? '')
   const [keyContent, setKeyContent] = useState(existing?.keyContent ?? '')
   const [keyFileName, setKeyFileName] = useState(existing?.keyFileName ?? '')
   const [keyPassphrase, setKeyPassphrase] = useState(existing?.keyPassphrase ?? '')
   const [rdpDomain, setRdpDomain] = useState(existing?.rdpDomain ?? '')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    window.api.vault.getKeys().then(setLibraryKeys)
+  }, [])
+
+  // Keys the user can reuse: everything in the vault's library, plus keys that older versions
+  // embedded directly in other connections (offered too so they can be shared instead of copied
+  // again) — de-duplicated by content, library entries winning.
+  const keyOptions = useMemo<KeyOption[]>(() => {
+    const options: KeyOption[] = libraryKeys.map((k) => ({ value: `lib:${k.id}`, label: k.name, name: k.name, content: k.content }))
+    const seen = new Set(libraryKeys.map((k) => k.content.trim()))
+    const inline: ConnectionConfig[] = []
+    if (root) collectInlineKeys(root, inline)
+    for (const conn of inline) {
+      const content = conn.keyContent as string
+      if (seen.has(content.trim())) continue
+      seen.add(content.trim())
+      const keyName = conn.keyFileName || 'key'
+      options.push({ value: `inline:${conn.id}`, label: `${keyName} (from ${conn.name})`, name: keyName, content })
+    }
+    return options
+  }, [libraryKeys, root])
+
+  // For a brand-new connection, default to reusing a key when there's one to reuse.
+  useEffect(() => {
+    if (!existing && keyOptions.length > 0 && keyMode === 'import' && !keyContent) {
+      setKeyMode('saved')
+      setSavedChoice((c) => c || keyOptions[0].value)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keyOptions.length])
 
   function switchProtocol(next: ConnectionProtocol): void {
     // Jump the port to the new protocol's default, but only if it's still at the previous
@@ -66,6 +114,28 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
       setError('Please import a private key file')
       return
     }
+    if (protocol === 'ssh' && authType === 'key' && keyMode === 'saved' && !savedChoice) {
+      setError('Please choose a saved key')
+      return
+    }
+
+    // Keys live once in the vault's library and connections point at them, so one key used by
+    // many servers isn't copied into every connection (which bloats the vault file).
+    let keyId: string | undefined
+    if (protocol === 'ssh' && authType === 'key') {
+      if (keyMode === 'import') {
+        keyId = (await window.api.vault.addKey(keyFileName || 'imported key', keyContent)).id
+      } else if (keyMode === 'saved') {
+        const option = keyOptions.find((o) => o.value === savedChoice)
+        if (!option) {
+          setError('That saved key is no longer available')
+          return
+        }
+        keyId = savedChoice.startsWith('lib:')
+          ? savedChoice.slice(4)
+          : (await window.api.vault.addKey(option.name, option.content)).id
+      }
+    }
 
     const conn: ConnectionConfig =
       protocol === 'rdp'
@@ -91,8 +161,7 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
             authType,
             password: authType === 'password' ? password : undefined,
             keyPath: authType === 'key' && keyMode === 'reference' ? keyPath : undefined,
-            keyContent: authType === 'key' && keyMode === 'import' ? keyContent : undefined,
-            keyFileName: authType === 'key' && keyMode === 'import' ? keyFileName : undefined,
+            keyId,
             keyPassphrase: authType === 'key' ? keyPassphrase : undefined
           }
 
@@ -200,10 +269,17 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
               <div className={styles.tabs}>
                 <button
                   type="button"
+                  className={`${styles.tab} ${keyMode === 'saved' ? styles.tabActive : ''}`}
+                  onClick={() => setKeyMode('saved')}
+                >
+                  Saved key
+                </button>
+                <button
+                  type="button"
                   className={`${styles.tab} ${keyMode === 'import' ? styles.tabActive : ''}`}
                   onClick={() => setKeyMode('import')}
                 >
-                  Import into vault (portable)
+                  Import new key
                 </button>
                 <button
                   type="button"
@@ -215,7 +291,27 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
               </div>
             </div>
 
-            {keyMode === 'import' ? (
+            {keyMode === 'saved' ? (
+              <div className={styles.row}>
+                <label className={styles.label}>Key already in this vault</label>
+                <select
+                  className={styles.input}
+                  value={savedChoice}
+                  onChange={(e) => setSavedChoice(e.target.value)}
+                >
+                  <option value="">{keyOptions.length ? 'Choose a key…' : 'No keys saved yet'}</option>
+                  {keyOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <p className={styles.hint}>
+                  Reuses a key stored once in the vault, so using one key for several servers doesn&apos;t
+                  copy it into every connection. Import a key with “Import new key” to add it here.
+                </p>
+              </div>
+            ) : keyMode === 'import' ? (
               <div className={styles.row}>
                 <label className={styles.label}>Private key (OpenSSH or PuTTY .ppk)</label>
                 <div className={styles.rowSplit}>
@@ -231,8 +327,8 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
                 </div>
                 {keyContent && (
                   <p className={styles.hint}>
-                    Key content is stored inside the encrypted vault — this connection will keep working if the app
-                    is moved to another machine.
+                    The key is stored once inside the encrypted vault (and can be reused by other connections) —
+                    this connection will keep working if the app is moved to another machine.
                   </p>
                 )}
               </div>

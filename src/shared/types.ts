@@ -14,6 +14,9 @@ export interface ConnectionConfig {
   password?: string
   keyPath?: string
   keyContent?: string
+  // References an entry in the vault's key library, so one key can serve many connections
+  // without being copied into each. Takes precedence over keyContent/keyPath.
+  keyId?: string
   keyFileName?: string
   keyPassphrase?: string
   color?: string
@@ -30,8 +33,16 @@ export interface FolderConfig {
 
 export type TreeNode = FolderConfig | ConnectionConfig
 
+export interface VaultKey {
+  id: string
+  name: string
+  content: string
+}
+
 export interface VaultData {
   root: FolderConfig
+  // Private keys stored once and shared by id. Absent on vaults saved before this existed.
+  keys?: VaultKey[]
   // Absent on vaults saved before this field existed.
   name?: string
   description?: string

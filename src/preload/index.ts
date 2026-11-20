@@ -11,6 +11,7 @@ import type {
   SessionStatus,
   SftpEntry,
   SftpProgress,
+  VaultKey,
   VaultUnlockResult
 } from '../shared/types'
 
@@ -28,6 +29,9 @@ const api = {
     pickNewLocation: (suggestedName?: string): Promise<VaultUnlockResult | null> =>
       ipcRenderer.invoke(IPC.vaultPickNewLocation, suggestedName),
     saveAs: (): Promise<VaultUnlockResult | null> => ipcRenderer.invoke(IPC.vaultSaveAs),
+    getKeys: (): Promise<VaultKey[]> => ipcRenderer.invoke(IPC.vaultGetKeys),
+    addKey: (name: string, content: string): Promise<VaultKey> =>
+      ipcRenderer.invoke(IPC.vaultAddKey, name, content),
     changePassword: (currentPassword: string, newPassword: string): Promise<ChangePasswordResult> =>
       ipcRenderer.invoke(IPC.vaultChangePassword, currentPassword, newPassword)
   },
