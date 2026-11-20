@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, WebContents, clipboard } from 'electron'
-import { join, dirname, basename } from 'path'
+import { join, dirname, basename, resolve } from 'path'
 import { readFileSync, existsSync } from 'fs'
 import { is } from './is'
 import { secureStore } from './secureStore'
@@ -32,6 +32,14 @@ let mainWindow: BrowserWindow | null = null
 // destroyed WebContents throws. Route every renderer push through this guard.
 function safeSend(sender: WebContents, channel: string, ...args: unknown[]): void {
   if (!sender.isDestroyed()) sender.send(channel, ...args)
+}
+
+/** First existing `.vault` file among the process arguments (skips argv[0], the executable). */
+function findVaultPathInArgs(argv: string[]): string | null {
+  for (const arg of argv.slice(1)) {
+    if (/\.vault$/i.test(arg) && existsSync(arg)) return resolve(arg)
+  }
+  return null
 }
 
 function createWindow(): void {
@@ -69,8 +77,13 @@ function createWindow(): void {
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null)
 
+  // A .vault file passed on the command line (double-clicking one in Explorer, or "Open with")
+  // wins over the last-used vault — otherwise opening a specific file would silently show a
+  // different vault's unlock screen.
   const lastVaultPath = getSettings().lastVaultPath
-  if (lastVaultPath && existsSync(lastVaultPath)) secureStore.setPath(lastVaultPath)
+  const launchVaultPath = findVaultPathInArgs(process.argv)
+  if (launchVaultPath) secureStore.setPath(launchVaultPath)
+  else if (lastVaultPath && existsSync(lastVaultPath)) secureStore.setPath(lastVaultPath)
 
   registerIpcHandlers()
   createWindow()

@@ -7,6 +7,20 @@ import { useSettingsStore } from '../../state/settingsStore'
 import { colorizeLine, containsEscapeCode } from '../../utils/terminalColorize'
 import styles from './TerminalPane.module.css'
 
+// FitAddon reads its size from the container's computed style, and for a display:none container
+// (every inactive tab) that yields a bogus tiny size — about 12x6 — instead of "unknown". Pushing
+// that to the remote pty makes the shell redraw and wrap for 12 columns, which is exactly the
+// stray new lines / garbled prompt seen after switching tabs. Only fit a container that's
+// actually laid out.
+function fitIfVisible(container: HTMLElement | null, fitAddon: FitAddon): void {
+  if (!container || container.clientWidth === 0 || container.clientHeight === 0) return
+  try {
+    fitAddon.fit()
+  } catch {
+    // ignore
+  }
+}
+
 export default function TerminalPane({ tab, active }: { tab: TabState; active: boolean }): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const termRef = useRef<Terminal | null>(null)
@@ -33,7 +47,7 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
     const fitAddon = new FitAddon()
     term.loadAddon(fitAddon)
     term.open(containerRef.current)
-    fitAddon.fit()
+    fitIfVisible(containerRef.current, fitAddon)
     termRef.current = term
     fitAddonRef.current = fitAddon
 
@@ -132,11 +146,7 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
     })
 
     const resizeObserver = new ResizeObserver(() => {
-      try {
-        fitAddon.fit()
-      } catch {
-        // container may be hidden (inactive tab); ignore
-      }
+      fitIfVisible(containerRef.current, fitAddon)
     })
     resizeObserver.observe(containerRef.current)
 
@@ -163,14 +173,18 @@ export default function TerminalPane({ tab, active }: { tab: TabState; active: b
     const term = termRef.current
     const fitAddon = fitAddonRef.current
     if (!term || !fitAddon) return
-    try {
-      fitAddon.fit()
-    } catch {
-      // ignore
-    }
+    fitIfVisible(containerRef.current, fitAddon)
     term.refresh(0, term.rows - 1)
     term.focus()
   }, [active])
+
+  // The initial fit happens before the SSH session exists (and before we subscribe to resize
+  // events), so the server would otherwise never learn the real size and keep rendering for its
+  // default until some later resize happened to occur. Tell it once the session is connected.
+  useEffect(() => {
+    const term = termRef.current
+    if (tab.status === 'connected' && term) window.api.session.resize(tab.id, term.cols, term.rows)
+  }, [tab.status, tab.id])
 
   return <div ref={containerRef} className={styles.terminal} />
 }
