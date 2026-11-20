@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [0.2.1] - 2026-11-20
 
 ### Added
 
@@ -95,5 +95,6 @@ First public release.
 - Windows portable zip (custom launcher, no NSIS self-extraction delay) and Linux AppImage
   build targets.
 
+[0.2.1]: https://github.com/Joanmarcgs/BurxatConnectionManager/releases/tag/v0.2.1
 [0.2.0]: https://github.com/Joanmarcgs/BurxatConnectionManager/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Joanmarcgs/BurxatConnectionManager/releases/tag/v0.1.0
