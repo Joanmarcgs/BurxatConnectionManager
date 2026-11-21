@@ -1,6 +1,6 @@
 {
   "name": "burxat-connection-manager",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Burxat's Connection Manager - a portable SSH/RDP/SFTP client",
   "main": "./out/main/index.js",
   "author": "Joanmarcgs",

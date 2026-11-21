@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-21
+
 ### Added
 
 - **Live search bar** in the sidebar header (magnifier on the right, ☰ menu on the left). The
