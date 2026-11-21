@@ -16,6 +16,8 @@
   padding: 22px;
   display: flex;
   flex-direction: column;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 .title {
@@ -74,6 +76,21 @@
   border-radius: 6px;
   padding: 7px 6px;
   font-size: 11px;
+}
+
+.wideBtn {
+  width: 100%;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 7px 6px;
+  font-size: 11px;
+  margin-bottom: 7px;
+}
+
+.wideBtn:hover {
+  background: var(--bg-3);
 }
 
 .gridBtn:hover {

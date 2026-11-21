@@ -149,9 +149,8 @@ a new one from the vault menu (☰, next to the vault name) at any time.
 - **Open a vault by double-clicking it**: set the launcher exe as the default program for
   `.vault` files (Windows: right-click a `.vault` file → *Open with* → *Choose another app* →
   the `BurxatConnectionManager.exe` at the root of the zip → *Always*). The file you double-click
-  is the one the unlock screen asks about, regardless of which vault was open last. Easier: open
-  *Settings → Open .vault files by double-clicking* and press **Set up for this location**; run it
-  again whenever you move or update the app folder.
+  is the one the unlock screen asks about, regardless of which vault was open last. Easier: open *Settings* and press **Set as default app for .vault files**; press it again
+  whenever you move or update the app folder.
 - **Vault menu** (☰, next to the vault name): *Open a different vault*, *Create a new vault*,
   *Lock vault*, *Save current vault as* (writes a copy to a new file under the same password and
   switches to it), and *Change master password* (requires the current one; the new one is

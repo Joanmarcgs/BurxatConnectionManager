@@ -142,23 +142,13 @@ export default function SettingsModal({ onClose }: { onClose: () => void }): JSX
 
         {association?.supported && (
           <div className={styles.section}>
-            <label className={styles.label}>Open .vault files by double-clicking</label>
-            <p className={styles.hint}>
-              {association.state === 'ok' && '✓ Double-clicking a .vault file opens this copy of the app.'}
-              {association.state === 'unregistered' && "Not set up yet: double-clicking a .vault file won't open this app."}
-              {association.state === 'stale' &&
-                `Set up, but pointing at a different location (${association.registeredPath}). Update it to this copy.`}
-              {association.state === 'other-app' &&
-                `Another program currently opens .vault files (${association.registeredPath}). You can still register this app, then pick it in Windows' Default apps.`}
-              <br />
-              This copy: {association.exePath}
-            </p>
-            <button className={styles.secondaryBtn} onClick={registerAssociation} disabled={associationBusy}>
-              {association.state === 'ok' ? 'Register again' : 'Set up for this location'}
+            <button className={styles.wideBtn} onClick={registerAssociation} disabled={associationBusy}>
+              Set as default app for .vault files
             </button>
             <p className={styles.hint}>
-              Only changes this Windows user's file type settings. The first time, Windows may ask you to
-              confirm the app once ("Always"). If you move this folder, come back here and update it.
+              {association.state === "ok"
+                ? "✓ Double-clicking a .vault file opens this app."
+                : "So double-clicking a .vault file opens this app. Press it again if you move the app."}
             </p>
           </div>
         )}
