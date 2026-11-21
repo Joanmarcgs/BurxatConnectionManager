@@ -11,6 +11,7 @@ import type {
   SessionStatus,
   SftpEntry,
   SftpProgress,
+  VaultAssociationStatus,
   VaultKey,
   VaultUnlockResult
 } from '../shared/types'
@@ -57,7 +58,10 @@ const api = {
     toggleFullScreen: (): Promise<void> => ipcRenderer.invoke(IPC.viewToggleFullScreen)
   },
   app: {
-    getVersion: (): Promise<string> => ipcRenderer.invoke(IPC.appGetVersion)
+    getVersion: (): Promise<string> => ipcRenderer.invoke(IPC.appGetVersion),
+    getVaultAssociation: (): Promise<VaultAssociationStatus> => ipcRenderer.invoke(IPC.appGetVaultAssociation),
+    registerVaultAssociation: (): Promise<VaultAssociationStatus> =>
+      ipcRenderer.invoke(IPC.appRegisterVaultAssociation)
   },
   clipboard: {
     readText: (): Promise<string> => ipcRenderer.invoke(IPC.clipboardReadText),

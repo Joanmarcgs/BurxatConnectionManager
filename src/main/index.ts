@@ -9,6 +9,7 @@ import { SftpManager } from './ssh/sftpManager'
 import { startStatsPolling, type StatsPollHandle } from './ssh/statsPoller'
 import { startEdit, stopEdit, stopAllEditsForSession } from './ssh/editSessionManager'
 import { launchRdp } from './rdp'
+import { getVaultAssociation, registerVaultAssociation } from './fileAssociation'
 import { IPC } from '../shared/ipc'
 import type {
   AppSettings,
@@ -276,6 +277,8 @@ function registerIpcHandlers(): void {
   ipcMain.handle(IPC.viewResetZoom, () => mainWindow?.webContents.setZoomLevel(0))
   ipcMain.handle(IPC.viewToggleFullScreen, () => mainWindow?.setFullScreen(!mainWindow.isFullScreen()))
   ipcMain.handle(IPC.appGetVersion, () => app.getVersion())
+  ipcMain.handle(IPC.appGetVaultAssociation, () => getVaultAssociation())
+  ipcMain.handle(IPC.appRegisterVaultAssociation, () => registerVaultAssociation())
 
   // --- Clipboard (routed through Electron's clipboard module rather than the sandboxed
   // renderer's navigator.clipboard, which requires a permission handshake for reads) ---

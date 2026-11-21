@@ -53,6 +53,16 @@ function removeNode(node: FolderConfig, id: string): TreeNode | null {
   return null
 }
 
+/** Replaces the node with this id where it already is (same folder, same position). */
+function replaceNodeInPlace(node: FolderConfig, replacement: TreeNode): boolean {
+  const idx = node.children.findIndex((c) => c.id === replacement.id)
+  if (idx >= 0) {
+    node.children[idx] = replacement
+    return true
+  }
+  return node.children.some((c) => c.type === 'folder' && replaceNodeInPlace(c, replacement))
+}
+
 export const useVaultStore = create<VaultState>((set, get) => ({
   unlocked: false,
   vaultExists: false,
@@ -169,10 +179,12 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   upsertConnection: async (parentId, conn) => {
     const root = get().root
     if (!root) return
-    // Remove any existing node with this id first (covers edits + moves-on-edit).
-    removeNode(root, conn.id)
-    const parent = findFolder(root, parentId) ?? root
-    parent.children.push(conn)
+    // Editing an existing connection must leave it where it is (inside whichever folder it's in,
+    // at the same position). Only a connection that doesn't exist yet is added to `parentId`.
+    if (!replaceNodeInPlace(root, conn)) {
+      const parent = findFolder(root, parentId) ?? root
+      parent.children.push(conn)
+    }
     set({ root: { ...root } })
     await window.api.vault.saveTree(root)
   },

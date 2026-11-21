@@ -33,6 +33,8 @@ export const IPC = {
   viewResetZoom: 'view:resetZoom',
   viewToggleFullScreen: 'view:toggleFullScreen',
   appGetVersion: 'app:getVersion',
+  appGetVaultAssociation: 'app:getVaultAssociation',
+  appRegisterVaultAssociation: 'app:registerVaultAssociation',
 
   // Clipboard
   clipboardReadText: 'clipboard:readText',

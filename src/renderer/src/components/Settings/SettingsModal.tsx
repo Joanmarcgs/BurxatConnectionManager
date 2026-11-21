@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSettingsStore } from '../../state/settingsStore'
+import type { VaultAssociationStatus } from '../../../../shared/types'
 import styles from './SettingsModal.module.css'
 
 export default function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element {
@@ -9,10 +10,19 @@ export default function SettingsModal({ onClose }: { onClose: () => void }): JSX
   const [useCustomEditor, setUseCustomEditor] = useState(settings.defaultEditor !== 'system')
   const [editorPath, setEditorPath] = useState(settings.defaultEditor === 'system' ? '' : settings.defaultEditor)
   const [version, setVersion] = useState('')
+  const [association, setAssociation] = useState<VaultAssociationStatus | null>(null)
+  const [associationBusy, setAssociationBusy] = useState(false)
 
   useEffect(() => {
     window.api.app.getVersion().then(setVersion)
+    window.api.app.getVaultAssociation().then(setAssociation)
   }, [])
+
+  async function registerAssociation(): Promise<void> {
+    setAssociationBusy(true)
+    setAssociation(await window.api.app.registerVaultAssociation())
+    setAssociationBusy(false)
+  }
 
   async function pickEditor(): Promise<void> {
     const path = await window.api.dialogs.pickEditorPath()
@@ -129,6 +139,29 @@ export default function SettingsModal({ onClose }: { onClose: () => void }): JSX
             </button>
           </div>
         </div>
+
+        {association?.supported && (
+          <div className={styles.section}>
+            <label className={styles.label}>Open .vault files by double-clicking</label>
+            <p className={styles.hint}>
+              {association.state === 'ok' && '✓ Double-clicking a .vault file opens this copy of the app.'}
+              {association.state === 'unregistered' && "Not set up yet: double-clicking a .vault file won't open this app."}
+              {association.state === 'stale' &&
+                `Set up, but pointing at a different location (${association.registeredPath}). Update it to this copy.`}
+              {association.state === 'other-app' &&
+                `Another program currently opens .vault files (${association.registeredPath}). You can still register this app, then pick it in Windows' Default apps.`}
+              <br />
+              This copy: {association.exePath}
+            </p>
+            <button className={styles.secondaryBtn} onClick={registerAssociation} disabled={associationBusy}>
+              {association.state === 'ok' ? 'Register again' : 'Set up for this location'}
+            </button>
+            <p className={styles.hint}>
+              Only changes this Windows user's file type settings. The first time, Windows may ask you to
+              confirm the app once ("Always"). If you move this folder, come back here and update it.
+            </p>
+          </div>
+        )}
 
         <div className={styles.section}>
           <label className={styles.label}>Help &amp; About</label>

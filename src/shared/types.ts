@@ -56,6 +56,18 @@ export interface VaultUnlockResult {
   vaultName?: string
 }
 
+export type VaultAssociationStatus =
+  | { supported: false; reason: string }
+  | {
+      supported: true
+      /** The exe that would be registered (the portable launcher when there is one). */
+      exePath: string
+      /** ok: points here · stale: points at a Burxat exe elsewhere/missing · other-app: another
+       * program is the .vault default · unregistered: nothing registered. */
+      state: 'ok' | 'stale' | 'other-app' | 'unregistered'
+      registeredPath: string | null
+    }
+
 export interface ChangePasswordResult {
   ok: boolean
   error?: string
