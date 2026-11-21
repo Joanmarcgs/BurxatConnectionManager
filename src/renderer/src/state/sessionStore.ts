@@ -31,7 +31,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     try {
       await window.api.session.connect(id, connection)
     } catch (err) {
-      get().setStatus(id, 'error', err instanceof Error ? err.message : String(err))
+      const raw = err instanceof Error ? err.message : String(err)
+      // Electron wraps main-process errors as "Error invoking remote method 'x': Error: <message>".
+      get().setStatus(id, 'error', raw.replace(/^Error invoking remote method '[^']*': (Error: )?/, ''))
     }
     return id
   },
@@ -49,7 +51,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setStatus: (id, status, message) =>
     set((s) => ({
-      tabs: s.tabs.map((t) => (t.id === id ? { ...t, status, errorMessage: message } : t))
+      tabs: s.tabs.map((t) => {
+        if (t.id !== id) return t
+        // A failed connection also fires a "closed" event right after the error; letting it
+        // through would replace the error message with an empty terminal.
+        if (t.status === "error" && status === "closed") return t
+        return { ...t, status, errorMessage: message }
+      })
     }))
 }))
 
