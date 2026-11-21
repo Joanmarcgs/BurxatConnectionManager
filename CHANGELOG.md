@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-11-21
+
 ### Added
 
 - **Release workflow on GitHub Actions** (`.github/workflows/release.yml`): builds the Windows
@@ -15,6 +17,12 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- New Settings button **Set as default app for .vault files**: registers the `.vault` file type
+  for the current location of the app (current Windows user only, no admin), so double-click keeps
+  working after moving or updating the folder.
+- The Settings window now scrolls when the app window is too small to show it all.
+- Editing a connection that lives inside a folder now keeps it in that folder (and position)
+  instead of moving it to the root.
 - `scripts/build-portable-win.ps1` gained `-StageOnly` and `-ZipStage <folder>` so the
   executables can be signed between building and zipping; with no arguments it behaves as before.
   The launcher now carries product name/version metadata matching the main executable.
