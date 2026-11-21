@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { randomBytes, randomUUID, createCipheriv, createDecipheriv, scryptSync, timingSafeEqual } from 'crypto'
 import { vaultFilePath } from './vaultPath'
 
-import type { FolderConfig, VaultData, VaultKey } from '../shared/types'
+import type { FolderConfig, VaultData, VaultKey, Snippet } from '../shared/types'
 
 const SCRYPT_KEYLEN = 32
 // N * r * 128 bytes of memory are needed; default maxmem (32MB) only just
@@ -97,6 +97,15 @@ export class SecureStore {
     const raw = readFileSync(this.currentPath, 'utf-8')
     const parsed: VaultFileShape = JSON.parse(raw)
     this.persist(Buffer.from(parsed.salt, 'base64'))
+  }
+
+  getSnippets(): Snippet[] {
+    return this.getData().snippets ?? []
+  }
+
+  saveSnippets(snippets: Snippet[]): void {
+    this.getData().snippets = snippets
+    this.save()
   }
 
   getKeys(): VaultKey[] {

@@ -37,6 +37,15 @@ encrypted vault file that travels with the app, not a fixed per-user profile pat
 
 - **Folder tree of connections** — organize SSH and RDP connections into nested folders, drag
   and drop to reorganize, right-click to create/rename/delete.
+- **Live search** — the box next to the ☰ menu filters the connection tree as you type (by name
+  or host, keeping the folders that lead to matches).
+- **Duplicate** a connection from its right-click menu; **import** existing ones from an OpenSSH
+  config file or from PuTTY's saved sessions (☰ menu).
+- **Jump host (ProxyJump)** — connect through another saved connection, chained if needed.
+- **Port forwarding** — local (`-L`) and remote (`-R`) tunnels per connection, active while the
+  session is open.
+- **Snippets** — saved commands, shared across the vault, run from the ⚡ button in the status bar.
+- **Reconnect** button when a session fails or is closed.
 - **SSH sessions** with a real terminal ([xterm.js](https://xtermjs.org/)) and an SFTP file
   browser open side by side per connection tab.
 - **Flexible SSH authentication**: password, private key (OpenSSH format or PuTTY `.ppk`,
@@ -151,8 +160,9 @@ a new one from the vault menu (☰, next to the vault name) at any time.
   the `BurxatConnectionManager.exe` at the root of the zip → *Always*). The file you double-click
   is the one the unlock screen asks about, regardless of which vault was open last. Easier: open *Settings* and press **Set as default app for .vault files**; press it again
   whenever you move or update the app folder.
-- **Vault menu** (☰, next to the vault name): *Open a different vault*, *Create a new vault*,
-  *Lock vault*, *Save current vault as* (writes a copy to a new file under the same password and
+- **Vault menu** (☰, left of the search box; hover it for the vault's name): *Open a different vault*,
+  *Create a new vault*, *Lock vault*, *Import from SSH config…*, *Import from PuTTY…*,
+  *Save current vault as* (writes a copy to a new file under the same password and
   switches to it), and *Change master password* (requires the current one; the new one is
   optional, same as at creation).
 - **Multiple vaults**: keep entirely separate, separately-password-protected sets of connections

@@ -30,6 +30,8 @@ interface VaultState {
   upsertConnection: (parentId: string, conn: ConnectionConfig) => Promise<void>
   moveNode: (nodeId: string, newParentId: string) => Promise<void>
   duplicateConnection: (id: string) => Promise<void>
+  /** Adds the connections inside a new top-level folder; returns how many were added. */
+  importConnections: (folderName: string, conns: ConnectionConfig[]) => Promise<number>
 }
 
 function findFolder(node: TreeNode, id: string): FolderConfig | null {
@@ -206,6 +208,15 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     if (!insertCopy(root)) return
     set({ root: { ...root } })
     await window.api.vault.saveTree(root)
+  },
+
+  importConnections: async (folderName, conns) => {
+    const root = get().root
+    if (!root || conns.length === 0) return 0
+    root.children.push({ id: uuid(), type: 'folder', name: folderName, children: conns })
+    set({ root: { ...root } })
+    await window.api.vault.saveTree(root)
+    return conns.length
   },
 
   moveNode: async (nodeId, newParentId) => {

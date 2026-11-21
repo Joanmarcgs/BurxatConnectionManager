@@ -11,6 +11,7 @@ import type {
   SessionStatus,
   SftpEntry,
   SftpProgress,
+  Snippet,
   VaultAssociationStatus,
   VaultKey,
   VaultUnlockResult
@@ -33,11 +34,15 @@ const api = {
     getKeys: (): Promise<VaultKey[]> => ipcRenderer.invoke(IPC.vaultGetKeys),
     addKey: (name: string, content: string): Promise<VaultKey> =>
       ipcRenderer.invoke(IPC.vaultAddKey, name, content),
+    getSnippets: (): Promise<Snippet[]> => ipcRenderer.invoke(IPC.vaultGetSnippets),
+    saveSnippets: (snippets: Snippet[]): Promise<void> => ipcRenderer.invoke(IPC.vaultSaveSnippets, snippets),
     changePassword: (currentPassword: string, newPassword: string): Promise<ChangePasswordResult> =>
       ipcRenderer.invoke(IPC.vaultChangePassword, currentPassword, newPassword)
   },
   dialogs: {
     pickKeyFile: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickKeyFile),
+    importSshConfig: (): Promise<ConnectionConfig[] | null> => ipcRenderer.invoke(IPC.importSshConfig),
+    importPutty: (): Promise<ConnectionConfig[]> => ipcRenderer.invoke(IPC.importPutty),
     pickUploadFiles: (): Promise<string[]> => ipcRenderer.invoke(IPC.pickUploadFiles),
     pickDownloadDir: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickDownloadDir),
     pickEditorPath: (): Promise<string | null> => ipcRenderer.invoke(IPC.pickEditorPath),

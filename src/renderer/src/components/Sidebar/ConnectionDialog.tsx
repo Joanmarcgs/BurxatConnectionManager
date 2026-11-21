@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { v4 as uuid } from 'uuid'
 import { useVaultStore } from '../../state/vaultStore'
-import type { AuthType, ConnectionConfig, ConnectionProtocol, TreeNode, VaultKey } from '../../../../shared/types'
+import type {
+  AuthType,
+  ConnectionConfig,
+  ConnectionProtocol,
+  PortForward,
+  TreeNode,
+  VaultKey
+} from '../../../../shared/types'
 import styles from './ConnectionDialog.module.css'
 
 interface Props {
@@ -47,6 +54,8 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
   const [keyFileName, setKeyFileName] = useState(existing?.keyFileName ?? '')
   const [keyPassphrase, setKeyPassphrase] = useState(existing?.keyPassphrase ?? '')
   const [rdpDomain, setRdpDomain] = useState(existing?.rdpDomain ?? '')
+  const [jumpHostId, setJumpHostId] = useState(existing?.jumpHostId ?? '')
+  const [tunnels, setTunnels] = useState<PortForward[]>(existing?.tunnels ?? [])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -79,6 +88,22 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyOptions.length])
+
+  // SSH connections that can serve as a jump host (not this one).
+  const jumpCandidates = useMemo(() => {
+    const found: ConnectionConfig[] = []
+    const walk = (n: TreeNode): void => {
+      if (n.type === 'connection') {
+        if (n.protocol !== 'rdp' && n.id !== existing?.id) found.push(n)
+      } else n.children.forEach(walk)
+    }
+    if (root) walk(root)
+    return found
+  }, [root, existing?.id])
+
+  function updateTunnel(id: string, patch: Partial<PortForward>): void {
+    setTunnels((list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+  }
 
   function switchProtocol(next: ConnectionProtocol): void {
     // Jump the port to the new protocol's default, but only if it's still at the previous
@@ -137,6 +162,8 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
       }
     }
 
+    const cleanTunnels = tunnels.filter((t) => t.bindPort > 0 && t.destPort > 0 && t.destHost.trim())
+
     const conn: ConnectionConfig =
       protocol === 'rdp'
         ? {
@@ -162,7 +189,9 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
             password: authType === 'password' ? password : undefined,
             keyPath: authType === 'key' && keyMode === 'reference' ? keyPath : undefined,
             keyId,
-            keyPassphrase: authType === 'key' ? keyPassphrase : undefined
+            keyPassphrase: authType === 'key' ? keyPassphrase : undefined,
+            jumpHostId: jumpHostId || undefined,
+            tunnels: cleanTunnels.length > 0 ? cleanTunnels : undefined
           }
 
     await upsertConnection(parentId, conn)
@@ -365,6 +394,89 @@ export default function ConnectionDialog({ parentId, existing, onClose }: Props)
             Uses keys already loaded in Pageant (Windows) or ssh-agent (Linux/macOS). No password or key file needed
             here.
           </p>
+        )}
+
+        {protocol === 'ssh' && (
+          <>
+            <div className={styles.row}>
+              <label className={styles.label}>Jump host (optional)</label>
+              <select className={styles.input} value={jumpHostId} onChange={(e) => setJumpHostId(e.target.value)}>
+                <option value="">None — connect directly</option>
+                {jumpCandidates.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.username}@{c.host})
+                  </option>
+                ))}
+              </select>
+              <p className={styles.hint}>Connects through another saved connection first (like ssh -J).</p>
+            </div>
+
+            <div className={styles.row}>
+              <label className={styles.label}>Port forwarding (optional)</label>
+              {tunnels.map((t) => (
+                <div className={styles.rowSplit} key={t.id} style={{ marginBottom: 6 }}>
+                  <select
+                    className={styles.input}
+                    style={{ flex: 2 }}
+                    value={t.type}
+                    onChange={(e) => updateTunnel(t.id, { type: e.target.value as PortForward['type'] })}
+                  >
+                    <option value="local">Local</option>
+                    <option value="remote">Remote</option>
+                  </select>
+                  <input
+                    className={styles.input}
+                    style={{ flex: 2 }}
+                    type="number"
+                    placeholder="Port"
+                    value={t.bindPort || ''}
+                    onChange={(e) => updateTunnel(t.id, { bindPort: Number(e.target.value) })}
+                  />
+                  <input
+                    className={styles.input}
+                    style={{ flex: 4 }}
+                    placeholder="Dest. host"
+                    value={t.destHost}
+                    onChange={(e) => updateTunnel(t.id, { destHost: e.target.value })}
+                  />
+                  <input
+                    className={styles.input}
+                    style={{ flex: 2 }}
+                    type="number"
+                    placeholder="Port"
+                    value={t.destPort || ''}
+                    onChange={(e) => updateTunnel(t.id, { destPort: Number(e.target.value) })}
+                  />
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    title="Remove"
+                    onClick={() => setTunnels((list) => list.filter((x) => x.id !== t.id))}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <div>
+                <button
+                  type="button"
+                  className={styles.secondaryBtn}
+                  onClick={() =>
+                    setTunnels((list) => [
+                      ...list,
+                      { id: uuid(), type: 'local', bindPort: 0, destHost: 'localhost', destPort: 0 }
+                    ])
+                  }
+                >
+                  + Add tunnel
+                </button>
+              </div>
+              <p className={styles.hint}>
+                Local: this PC&apos;s port → destination, as seen from the server. Remote: the server&apos;s port →
+                destination, as seen from this PC. Active while the session is open.
+              </p>
+            </div>
+          </>
         )}
 
         {error && <div className={styles.error}>{error}</div>}

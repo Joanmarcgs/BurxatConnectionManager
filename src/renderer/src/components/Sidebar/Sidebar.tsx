@@ -50,6 +50,7 @@ export default function Sidebar(): JSX.Element {
   const deleteNode = useVaultStore((s) => s.deleteNode)
   const moveNode = useVaultStore((s) => s.moveNode)
   const duplicateConnection = useVaultStore((s) => s.duplicateConnection)
+  const importConnections = useVaultStore((s) => s.importConnections)
   const lockVault = useVaultStore((s) => s.lockVault)
   const path = useVaultStore((s) => s.path)
   const vaultName = useVaultStore((s) => s.vaultName)
@@ -96,6 +97,19 @@ export default function Sidebar(): JSX.Element {
   async function handleSaveVaultAs(): Promise<void> {
     setVaultMenuOpen(false)
     await saveVaultAs()
+  }
+
+  async function handleImport(source: 'ssh' | 'putty'): Promise<void> {
+    setVaultMenuOpen(false)
+    const found = source === 'ssh' ? await window.api.dialogs.importSshConfig() : await window.api.dialogs.importPutty()
+    if (found === null) return
+    const label = source === 'ssh' ? 'SSH config' : 'PuTTY'
+    if (found.length === 0) {
+      window.alert(`No ${label} connections were found.`)
+      return
+    }
+    const n = await importConnections(`Imported from ${label}`, found)
+    window.alert(`Imported ${n} connection${n === 1 ? '' : 's'} into the folder "Imported from ${label}".`)
   }
 
   function handleChangePassword(): void {
@@ -158,6 +172,12 @@ export default function Sidebar(): JSX.Element {
               </div>
               <div className={styles.menuItem} onClick={handleSaveVaultAs}>
                 Save current vault as
+              </div>
+              <div className={styles.menuItem} onClick={() => handleImport('ssh')}>
+                Import from SSH config…
+              </div>
+              <div className={styles.menuItem} onClick={() => handleImport('putty')}>
+                Import from PuTTY…
               </div>
               <div className={styles.menuItem} onClick={handleChangePassword}>
                 Change master password

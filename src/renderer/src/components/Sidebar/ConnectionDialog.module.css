@@ -9,7 +9,8 @@
 }
 
 .card {
-  width: 420px;
+  width: 480px;
+  max-width: calc(100vw - 32px);
   max-height: 90vh;
   overflow-y: auto;
   background: var(--bg-1);

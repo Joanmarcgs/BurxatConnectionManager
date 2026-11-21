@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { TabState } from '../../state/sessionStore'
 import type { ServerStats } from '../../../../shared/types'
+import SnippetsButton from './SnippetsButton'
 import styles from './TerminalStatusBar.module.css'
 
 function formatMB(mb: number): string {
@@ -25,6 +26,7 @@ export default function TerminalStatusBar({ tab }: { tab: TabState }): JSX.Eleme
   if (!stats) {
     return (
       <div className={styles.bar}>
+        <SnippetsButton sessionId={tab.id} />
         <span className={styles.item}>Gathering server stats…</span>
       </div>
     )
@@ -34,6 +36,7 @@ export default function TerminalStatusBar({ tab }: { tab: TabState }): JSX.Eleme
 
   return (
     <div className={styles.bar}>
+      <SnippetsButton sessionId={tab.id} />
       <span className={styles.item}>
         CPU: {stats.cpuPercent === null ? '—' : `${Math.round(stats.cpuPercent)}%`}
       </span>

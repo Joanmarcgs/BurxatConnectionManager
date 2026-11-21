@@ -12,9 +12,13 @@ export const IPC = {
   vaultChangePassword: 'vault:changePassword',
   vaultGetKeys: 'vault:getKeys',
   vaultAddKey: 'vault:addKey',
+  vaultGetSnippets: 'vault:getSnippets',
+  vaultSaveSnippets: 'vault:saveSnippets',
 
   // Dialogs
   pickKeyFile: 'dialog:pickKeyFile',
+  importSshConfig: 'import:sshConfig',
+  importPutty: 'import:putty',
   pickUploadFiles: 'dialog:pickUploadFiles',
   pickDownloadDir: 'dialog:pickDownloadDir',
   pickEditorPath: 'dialog:pickEditorPath',

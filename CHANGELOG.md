@@ -4,6 +4,30 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Live search bar** in the sidebar header (magnifier on the right, ☰ menu on the left). The
+  tree filters as you type, by name or host, keeping the folders that lead to matches.
+- **Duplicate** connection (right-click menu).
+- **Import** connections from an OpenSSH config file or from PuTTY's saved sessions (☰ menu).
+  ProxyJump entries between imported hosts are preserved.
+- **Jump host (ProxyJump)**: a connection can go through another saved connection first, chained.
+- **Port forwarding**: local and remote tunnels per connection, active while the session is open.
+- **Snippets**: saved commands (stored in the vault) run from the ⚡ Snippets button in the status
+  bar, with an editor.
+- **Reconnect** button on the failed-connection screen and when a session is closed.
+
+### Fixed
+
+- A failed connection's error message now stays on screen instead of flashing and leaving a blank
+  terminal; the technical "Error invoking remote method" prefix is removed.
+- The connection dialog fits small windows (scrolls) and is a little wider.
+
+### Changed
+
+- The vault name is no longer repeated in the sidebar header (it's in the tab above and in the ☰
+  button's tooltip).
+
 ## [0.2.2] - 2026-11-21
 
 ### Added

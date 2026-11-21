@@ -1,6 +1,21 @@
 export type AuthType = 'password' | 'key' | 'agent'
 export type ConnectionProtocol = 'ssh' | 'rdp'
 
+export interface PortForward {
+  id: string
+  /** local: listen here, send to dest via the server (ssh -L). remote: listen on the server, send to dest from here (ssh -R). */
+  type: 'local' | 'remote'
+  bindPort: number
+  destHost: string
+  destPort: number
+}
+
+export interface Snippet {
+  id: string
+  name: string
+  command: string
+}
+
 export interface ConnectionConfig {
   id: string
   type: 'connection'
@@ -20,6 +35,9 @@ export interface ConnectionConfig {
   keyFileName?: string
   keyPassphrase?: string
   color?: string
+  // Another connection in the vault to hop through first (ssh -J).
+  jumpHostId?: string
+  tunnels?: PortForward[]
   // RDP-only
   rdpDomain?: string
 }
@@ -43,6 +61,8 @@ export interface VaultData {
   root: FolderConfig
   // Private keys stored once and shared by id. Absent on vaults saved before this existed.
   keys?: VaultKey[]
+  // Saved commands runnable from any terminal. Absent on older vaults.
+  snippets?: Snippet[]
   // Absent on vaults saved before this field existed.
   name?: string
   description?: string

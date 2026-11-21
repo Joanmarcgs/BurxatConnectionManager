@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, WebContents, clipboard } from 'electron'
 import { join, dirname, basename, resolve } from 'path'
 import { readFileSync, existsSync } from 'fs'
+import { homedir } from 'os'
 import { is } from './is'
 import { secureStore } from './secureStore'
 import { getSettings, saveSettings } from './settingsStore'
@@ -9,12 +10,15 @@ import { SftpManager } from './ssh/sftpManager'
 import { startStatsPolling, type StatsPollHandle } from './ssh/statsPoller'
 import { startEdit, stopEdit, stopAllEditsForSession } from './ssh/editSessionManager'
 import { launchRdp } from './rdp'
+import { parseSshConfig, readPuttySessions } from './importers'
 import { getVaultAssociation, registerVaultAssociation } from './fileAssociation'
 import { IPC } from '../shared/ipc'
 import type {
   AppSettings,
   ChangePasswordResult,
   ConnectionConfig,
+  TreeNode,
+  Snippet,
   FolderConfig,
   VaultUnlockResult
 } from '../shared/types'
@@ -41,6 +45,32 @@ function findVaultPathInArgs(argv: string[]): string | null {
     if (/\.vault$/i.test(arg) && existsSync(arg)) return resolve(arg)
   }
   return null
+}
+
+/** Finds a connection anywhere in the vault tree. */
+function findConnection(node: TreeNode, id: string): ConnectionConfig | null {
+  if (node.type === 'connection') return node.id === id ? node : null
+  for (const child of node.children) {
+    const found = findConnection(child, id)
+    if (found) return found
+  }
+  return null
+}
+
+/** The jump hosts to hop through for this connection, first hop first (each with its key resolved). */
+function resolveJumpChain(config: ConnectionConfig): ConnectionConfig[] {
+  const chain: ConnectionConfig[] = []
+  const seen = new Set<string>([config.id])
+  let current = config
+  while (current.jumpHostId) {
+    if (seen.has(current.jumpHostId)) throw new Error('Jump hosts form a loop')
+    seen.add(current.jumpHostId)
+    const hop = findConnection(secureStore.getData().root, current.jumpHostId)
+    if (!hop) throw new Error('The jump host this connection uses is no longer in the vault')
+    chain.unshift(resolveKeyReference(hop))
+    current = hop
+  }
+  return chain
 }
 
 /** Swaps a connection's key-library reference for the actual key content before connecting. */
@@ -199,6 +229,8 @@ function registerIpcHandlers(): void {
   )
 
   ipcMain.handle(IPC.vaultGetKeys, () => secureStore.getKeys())
+  ipcMain.handle(IPC.vaultGetSnippets, () => secureStore.getSnippets())
+  ipcMain.handle(IPC.vaultSaveSnippets, (_e, snippets: Snippet[]) => secureStore.saveSnippets(snippets))
   ipcMain.handle(IPC.vaultAddKey, (_e, name: string, content: string) => secureStore.addKey(name, content))
 
   ipcMain.handle(IPC.vaultGetTree, (): FolderConfig => {
@@ -211,6 +243,20 @@ function registerIpcHandlers(): void {
   })
 
   // --- Dialogs ---
+  // Both return the connections found, or null if the user cancelled the file picker.
+  ipcMain.handle(IPC.importSshConfig, async (): Promise<ConnectionConfig[] | null> => {
+    const defaultPath = join(homedir(), '.ssh')
+    const result = await dialog.showOpenDialog({
+      title: 'Choose an OpenSSH config file',
+      defaultPath: existsSync(defaultPath) ? defaultPath : undefined,
+      properties: ['openFile', 'showHiddenFiles'],
+      filters: [{ name: 'All files', extensions: ['*'] }]
+    })
+    if (result.canceled) return null
+    return parseSshConfig(readFileSync(result.filePaths[0], 'utf-8'))
+  })
+  ipcMain.handle(IPC.importPutty, () => readPuttySessions())
+
   ipcMain.handle(IPC.pickKeyFile, async () => {
     const result = await dialog.showOpenDialog({
       properties: ['openFile'],
@@ -305,7 +351,7 @@ function registerIpcHandlers(): void {
     })
 
     try {
-      await session.connect(config)
+      await session.connect(config, resolveJumpChain(config))
       const stats = startStatsPolling(session, sessionId, (statsUpdate) => {
         safeSend(sender, IPC.sessionStats, statsUpdate)
       })
