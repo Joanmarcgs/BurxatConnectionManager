@@ -27,3 +27,33 @@
   color: var(--danger);
   font-size: 12px;
 }
+
+.reconnectBtn {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+
+.reconnectBtn:hover {
+  background: var(--bg-3);
+}
+
+.closedBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.closedBanner .reconnectBtn {
+  margin-top: 0;
+  padding: 3px 10px;
+}

@@ -15,12 +15,41 @@ export interface ContextMenuState {
   node: TreeNode
 }
 
+/**
+ * Live search: keeps connections whose name or host matches, plus the folders leading to them.
+ * A folder whose own name matches is kept whole.
+ */
+function filterTree(nodes: TreeNode[], q: string): TreeNode[] {
+  const out: TreeNode[] = []
+  for (const node of nodes) {
+    if (node.type === 'folder') {
+      if (node.name.toLowerCase().includes(q)) out.push(node)
+      else {
+        const children = filterTree(node.children, q)
+        if (children.length > 0) out.push({ ...node, children })
+      }
+    } else if (node.name.toLowerCase().includes(q) || node.host.toLowerCase().includes(q)) {
+      out.push(node)
+    }
+  }
+  return out
+}
+
+function allFolderIds(node: TreeNode, ids = new Set<string>()): Set<string> {
+  if (node.type === 'folder') {
+    ids.add(node.id)
+    node.children.forEach((c) => allFolderIds(c, ids))
+  }
+  return ids
+}
+
 export default function Sidebar(): JSX.Element {
   const root = useVaultStore((s) => s.root)
   const addFolder = useVaultStore((s) => s.addFolder)
   const renameNode = useVaultStore((s) => s.renameNode)
   const deleteNode = useVaultStore((s) => s.deleteNode)
   const moveNode = useVaultStore((s) => s.moveNode)
+  const duplicateConnection = useVaultStore((s) => s.duplicateConnection)
   const lockVault = useVaultStore((s) => s.lockVault)
   const path = useVaultStore((s) => s.path)
   const vaultName = useVaultStore((s) => s.vaultName)
@@ -37,6 +66,7 @@ export default function Sidebar(): JSX.Element {
   >(null)
   const [vaultMenuOpen, setVaultMenuOpen] = useState(false)
   const [showChangePassword, setShowChangePassword] = useState(false)
+  const [query, setQuery] = useState('')
 
   useEffect(() => {
     function close(): void {
@@ -75,6 +105,9 @@ export default function Sidebar(): JSX.Element {
 
   if (!root) return <div className={styles.wrap} />
 
+  const searching = query.trim() !== ''
+  const visibleNodes = searching ? filterTree(root.children, query.trim().toLowerCase()) : root.children
+
   function toggleExpand(id: string): void {
     setExpanded((prev) => {
       const next = new Set(prev)
@@ -101,13 +134,10 @@ export default function Sidebar(): JSX.Element {
   return (
     <div className={styles.wrap} onContextMenu={(e) => handleContextMenu(e, root)}>
       <div className={styles.header}>
-        <span className={styles.vaultName} title={path}>
-          {vaultName || vaultDisplayName(path)}
-        </span>
         <div className={styles.headerActions}>
           <button
             className={styles.lockBtn}
-            title="Vault menu"
+            title={`Vault menu — ${vaultName || vaultDisplayName(path)}`}
             onClick={(e) => {
               e.stopPropagation()
               setVaultMenuOpen((v) => !v)
@@ -135,18 +165,36 @@ export default function Sidebar(): JSX.Element {
             </div>
           )}
         </div>
+        <div className={styles.searchBox} onContextMenu={(e) => e.stopPropagation()}>
+          <input
+            className={styles.searchInput}
+            value={query}
+            placeholder="Search connections"
+            spellCheck={false}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setQuery('')
+            }}
+          />
+          <span className={styles.searchIcon} aria-hidden>
+            🔍
+          </span>
+        </div>
       </div>
 
       <div className={styles.tree}>
         {root.children.length === 0 && (
           <div className={styles.emptyHint}>Right-click here to add a folder or connection</div>
         )}
-        {root.children.map((node) => (
+        {searching && visibleNodes.length === 0 && root.children.length > 0 && (
+          <div className={styles.emptyHint}>No connections match "{query.trim()}"</div>
+        )}
+        {visibleNodes.map((node) => (
           <TreeItem
             key={node.id}
             node={node}
             depth={0}
-            expanded={expanded}
+            expanded={searching ? allFolderIds(root) : expanded}
             onToggleExpand={toggleExpand}
             onContextMenu={handleContextMenu}
             onConnect={handleConnect}
@@ -173,6 +221,14 @@ export default function Sidebar(): JSX.Element {
             menu.node.type === 'connection'
               ? () => {
                   setDialogState({ parentId: root.id, conn: menu.node as ConnectionConfig })
+                  setMenu(null)
+                }
+              : undefined
+          }
+          onDuplicate={
+            menu.node.type === 'connection'
+              ? () => {
+                  duplicateConnection(menu.node.id)
                   setMenu(null)
                 }
               : undefined
@@ -251,6 +307,7 @@ function SidebarContextMenu(props: {
   onNewFolder: () => void
   onNewConnection: () => void
   onEdit?: () => void
+  onDuplicate?: () => void
   onRename?: () => void
   onDelete?: () => void
   onConnect?: () => void
@@ -262,6 +319,7 @@ function SidebarContextMenu(props: {
       <MenuItem label="New folder" onClick={props.onNewFolder} />
       <MenuItem label="New connection" onClick={props.onNewConnection} />
       {props.onEdit && <MenuItem label="Edit" onClick={props.onEdit} />}
+      {props.onDuplicate && <MenuItem label="Duplicate" onClick={props.onDuplicate} />}
       {props.onRename && <MenuItem label="Rename" onClick={props.onRename} />}
       {props.onDelete && <MenuItem label="Delete" onClick={props.onDelete} danger />}
     </div>

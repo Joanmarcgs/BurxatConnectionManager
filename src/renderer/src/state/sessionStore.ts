@@ -15,8 +15,9 @@ interface SessionState {
 
   openConnection: (connection: ConnectionConfig) => Promise<string>
   closeTab: (id: string) => void
+  reconnectTab: (id: string) => Promise<void>
   setActiveTab: (id: string) => void
-  setStatus: (id: string, status: TabState['status'], message?: string) => void
+  setStatus: (id: string, status: TabState['status'], message?: string, force?: boolean) => void
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -38,6 +39,18 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     return id
   },
 
+  reconnectTab: async (id) => {
+    const tab = get().tabs.find((t) => t.id === id)
+    if (!tab || tab.status === 'connecting' || tab.status === 'connected') return
+    get().setStatus(id, 'connecting', undefined, true)
+    try {
+      await window.api.session.connect(id, tab.connection)
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err)
+      get().setStatus(id, 'error', raw.replace(/^Error invoking remote method '[^']*': (Error: )?/, ''))
+    }
+  },
+
   closeTab: (id) => {
     window.api.session.disconnect(id)
     set((s) => {
@@ -49,13 +62,13 @@ export const useSessionStore = create<SessionState>((set, get) => ({
 
   setActiveTab: (id) => set({ activeTabId: id }),
 
-  setStatus: (id, status, message) =>
+  setStatus: (id, status, message, force) =>
     set((s) => ({
       tabs: s.tabs.map((t) => {
         if (t.id !== id) return t
         // A failed connection also fires a "closed" event right after the error; letting it
         // through would replace the error message with an empty terminal.
-        if (t.status === "error" && status === "closed") return t
+        if (!force && t.status === 'error' && status === 'closed') return t
         return { ...t, status, errorMessage: message }
       })
     }))

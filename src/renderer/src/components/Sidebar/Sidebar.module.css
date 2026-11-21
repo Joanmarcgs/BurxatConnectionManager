@@ -11,7 +11,7 @@
   padding: 10px 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   font-weight: 600;
   font-size: 12px;
   color: var(--text-dim);
@@ -19,12 +19,37 @@
   position: relative;
 }
 
-.vaultName {
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.searchBox {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 28px 5px 9px;
+  font-size: 12px;
+  font-weight: 400;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: var(--accent);
+}
+
+.searchIcon {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .headerActions {
@@ -100,7 +125,7 @@
 .vaultMenu {
   position: absolute;
   top: 100%;
-  right: 12px;
+  left: 12px;
   margin-top: 6px;
   background: var(--bg-2);
   border: 1px solid var(--border);
